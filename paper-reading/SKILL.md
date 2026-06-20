@@ -70,10 +70,11 @@ digraph step {
 지금 단계를 이해하는 데 figure·table·equation·appendix·algorithm 이 필요하면,
 **설명 전에 먼저 그 부분을 읽고(inspect) 나서** 설명한다. 짐작으로 설명하지 않는다.
 
-arXiv/링크 논문은 가능하면 **먼저 `paper.pdf` 로 받아 두고**, 각 단계에서 필요한 페이지만
-`Read` 의 `pages` 로 본다. (WebFetch 는 요약·가공돼 figure/table/수식이 손실되고, 멀티턴 동안
-재fetch 가 불안정하다. 로컬 PDF 는 원문 충실 + 페이지 단위 on-demand 라 단계별 진행과 맞다.)
-**저장 위치는 받기 전에 사용자에게 물어본다** (어디에 둘지 모를 땐 짐작하지 말 것).
+사용자가 **주소(arXiv/PDF 링크 등)를 주면, 직접 받지 말고 네가 `papers/` 폴더에 다운로드**한다.
+폴더가 없으면 만들고, 파일명은 논문을 알아볼 수 있게(예: `papers/<arxiv-id-or-제목>.pdf`) 저장한다.
+그 뒤 각 단계에서 필요한 페이지만 `Read` 의 `pages` 로 본다.
+(WebFetch 는 요약·가공돼 figure/table/수식이 손실되고 멀티턴 재fetch 가 불안정하다.
+로컬 PDF 는 원문 충실 + 페이지 단위 on-demand 라 단계별 진행과 맞다.)
 
 ## Red Flags — 이러면 멈추고 스킬대로
 
