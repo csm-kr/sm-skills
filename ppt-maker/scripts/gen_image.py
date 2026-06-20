@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""sm-ppt-maker: apiyi(OpenAI 호환) 이미지 생성 — 덱에 들어갈 콘텐츠 이미지용.
+"""ppt-maker: apiyi(OpenAI 호환) 이미지 생성 — 덱에 들어갈 콘텐츠 이미지용.
 
 사용:
   python gen_image.py "프롬프트" out.png [--size 1536x1024] [--quality high] [--model gpt-image-2-vip]

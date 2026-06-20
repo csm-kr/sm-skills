@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""sm-ppt-maker: 다음 순번의 덱 폴더를 스캐폴딩한다.
+"""ppt-maker: 다음 순번의 덱 폴더를 스캐폴딩한다.
 
 사용:
   python new_deck.py "<slug>" [--date YYYYMMDD] [--root <작업공간>]

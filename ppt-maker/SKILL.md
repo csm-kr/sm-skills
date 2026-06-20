@@ -1,9 +1,9 @@
 ---
-name: sm-ppt-maker
+name: ppt-maker
 description: Use when the user wants to create, build, or design a presentation, slide deck, PPT, or 발표자료 — from a topic discussion, hand-written notes or sketch images, web pages, or documents — and needs a branded reveal.js HTML deck exported to .html and .pdf.
 ---
 
-# sm-ppt-maker
+# ppt-maker
 
 ## Overview
 사용자와 **같이 만드는** reveal.js HTML 슬라이드 덱. 고정 브랜드 템플릿("메모장 + 밝은" 크림 종이 테마)을 채워서 `.html`로 배포하고 `.pdf`로 추출한다. 필요할 때만 덱 내부 콘텐츠 이미지를 생성한다.
@@ -21,7 +21,7 @@ output/NN_<slug>_<YYYYMMDD>/    ← 덱마다 폴더 (순번_주제_날짜)
 archive/                        ← 작업 스크래치 격리
 ```
 
-- 새 덱은 `python .claude/skills/sm-ppt-maker/scripts/new_deck.py "<slug>"` 로 폴더를 만든다(순번=기존 최대+1, 날짜=오늘 자동). 출력된 경로의 `deck.html`을 편집.
+- 새 덱은 `python .claude/skills/ppt-maker/scripts/new_deck.py "<slug>"` 로 폴더를 만든다(순번=기존 최대+1, 날짜=오늘 자동). 출력된 경로의 `deck.html`을 편집.
 - 덱 산출물은 **항상 그 덱 폴더 안**에 둔다. 루트에 흩뿌리지 않는다.
 - 덱 내부 이미지는 전부 상대경로 `assets/...` (폴더째 옮겨도 안 깨짐).
 
@@ -36,7 +36,7 @@ archive/                        ← 작업 스크래치 격리
 
 1. **소스 확보 (grill me)** → [reference/intake.md](reference/intake.md)의 적응형 인터뷰 + 필수 4항목(한줄메시지·청중·근거/데이터·CTA) 체크리스트로 의도·데이터를 쥐어짠다. 답변의 빈 곳은 후속 질문으로 압박. → 산출물: 인테이크 노트.
 2. **웹 리서치** → [reference/research.md](reference/research.md). 근거가 빈 항목·최신 데이터를 웹으로 보강(무거운 fetch 전 확인, 소스 많으면 팬아웃). 충분하면 건너뜀.
-3. **기획** → **타겟 청중을 확정**하고 그들에게 꽂히는 한줄메시지·스토리라인·Chapter 구조를 잡는다. 슬라이드 개요(슬라이드별 제목+요점)를 사용자와 합의. **One idea per slide** — 제목에 "그리고/및"이 들어가면 두 장으로.
+3. **기획** → 스토리 짜기 전에 먼저 [reference/product-judgment.md](reference/product-judgment.md)로 **제품 판단 블록**(타겟 순간·king action·AI 특이점·신뢰 장치·반복 루프·뺄 것)을 한 번 잡는다 — 제품/AI 기능을 파는 덱이면 필수, 단순 정보 전달 덱이면 생략 가능. 그 위에서 **타겟 청중을 확정**하고 그들에게 꽂히는 한줄메시지·스토리라인·Chapter 구조를 잡는다. 슬라이드 개요(슬라이드별 제목+요점)를 사용자와 합의. **One idea per slide** — 제목에 "그리고/및"이 들어가면 두 장으로.
 4. **구성/빌드** → `new_deck.py "<slug>"`로 덱 폴더(`output/NN_slug_date/`)를 만들고 출력된 `deck.html`의 `<section>`을 복제·수정. 사용자가 레퍼런스 덱(PPT/PDF)을 주면 [reference/reference-ingest.md](reference/reference-ingest.md)로 콘텐츠+스타일을 흡수(스타일은 확인 후 취향 반영). → 검증: 슬라이드 수 = 개요.
 5. **이미지** → 필요한 곳은 웹에서 먼저 찾고(스샷/실물 우선), 못 찾으면 presentation-craft.md §3 기준에 맞을 때 `gen_image.py`로 1~2장 생성(브랜드 톤 고정). 사용자 원본 이미지는 생성 말고 그대로 임베드. 생성·임베드 이미지는 모두 그 덱의 `assets/`에 둔다(사용자 원본은 `input/`→`assets/` 복사).
 6. **리뷰 + 취향 갱신** → 슬라이드별 스크린샷으로 마감 QA(craft.md §4) 후 사용자 피드백 반영. **변경마다 덱 버전을 올린다.** 마감 시 이번 덱에서 배운 취향을 **diff로 제안**하고 사용자가 확인한 것만 `taste-profile.md`에 기록(version +1). 조용히 바꾸지 않는다. 생성 이미지 개수·비용($0.03/장)도 요약.

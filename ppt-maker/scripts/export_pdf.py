@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""sm-ppt-maker: reveal.js .html → .pdf.
+"""ppt-maker: reveal.js .html → .pdf.
 
 사용:
   python export_pdf.py deck.html [out.pdf] [--decktape]

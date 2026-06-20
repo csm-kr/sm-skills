@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""sm-ppt-maker: PDF 마감 검증 — 전 페이지를 콘택트 시트로 렌더해 bleed/잘림을 눈으로 확인.
+"""ppt-maker: PDF 마감 검증 — 전 페이지를 콘택트 시트로 렌더해 bleed/잘림을 눈으로 확인.
 
 사용:
   python verify_pdf.py deck.pdf [--out out/_contact.png] [--cols 4]
