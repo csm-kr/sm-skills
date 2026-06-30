@@ -87,12 +87,15 @@ python scripts/gen_image.py "프롬프트" output/NN_slug_date/assets/img1.png -
 
 ## 4. 내보내기
 ```bash
-# 산출 PDF는 deck.pdf 말고 주제 이름으로 저장한다.
-python scripts/export_pdf.py output/NN_slug_date/deck.html "output/NN_slug_date/<주제>.pdf"          # 기본: print-pdf
-python scripts/export_pdf_shots.py output/NN_slug_date/deck.html "output/NN_slug_date/<주제>.pdf"     # 화면과 1:1(스샷 합치기)
-python scripts/verify_pdf.py "output/NN_slug_date/<주제>.pdf"                                          # bleed 검증(콘택트 시트) → Read로 확인
+# 0) 작업본 deck.html → 주제+버전 이름으로 확정(rename). 같은 폴더라 assets 상대경로 안 깨짐.
+#    (PowerShell)  Rename-Item output/NN_slug_date/deck.html "<주제>v<N>.html"
+mv output/NN_slug_date/deck.html "output/NN_slug_date/<주제>v<N>.html"
+# 1) 그 html에서 PDF 생성 — deck.pdf 말고 같은 주제+버전 이름으로.
+python scripts/export_pdf.py "output/NN_slug_date/<주제>v<N>.html" "output/NN_slug_date/<주제>v<N>.pdf"        # 기본: print-pdf
+python scripts/export_pdf_shots.py "output/NN_slug_date/<주제>v<N>.html" "output/NN_slug_date/<주제>v<N>.pdf"   # 화면과 1:1(스샷 합치기)
+python scripts/verify_pdf.py "output/NN_slug_date/<주제>v<N>.pdf"                                              # bleed 검증(콘택트 시트) → Read로 확인
 ```
-- **파일명** — 산출물(`.html`·`.pdf`)은 `deck.*`가 아니라 **주제+버전**(`<주제>v<N>.html`/`.pdf`, 공백 없이)으로 저장한다. 표지 푸터의 `vN` 표기와 파일명 버전을 일치시킨다.
+- **파일명** — 산출물(`.html`·`.pdf`)은 `deck.*`가 아니라 **주제+버전**(`<주제>v<N>.html`/`.pdf`, 공백 없이)으로 저장한다. **`deck.html`을 그대로 남기지 않는다** — 작업 중엔 `deck.html`을 편집하고, **마감 때 위 0)단계로 rename**해 `.html`·`.pdf`가 같은 이름이 되게 한다. 표지 푸터의 `vN` 표기와 파일명 버전을 일치시킨다.
 - **.html과 .pdf 줄간격이 다를 때** — reveal `?print-pdf`(pdf.css + Chromium 인쇄 엔진 + 폰트 로드 타이밍)는 화면(paper.css)보다 줄간격이 좁게 나올 수 있다. 화면 그대로가 필요하면 **`export_pdf_shots.py`**(browse로 각 슬라이드 고해상도 스샷 → pymupdf로 16:9 PDF 합치기)로 만들면 **HTML과 1:1**.
 
 **PDF bleed 필수 점검** — 각 페이지 위·아래에 인접 슬라이드가 비치면 안 된다(장수 많을수록 심해짐). 템플릿에 `center:false` + `pdfPageHeightOffset:0`이 박혀 있어야 하고, `verify_pdf.py`로 캡처 검증. 자세히는 [presentation-craft.md](reference/presentation-craft.md) §4.
@@ -117,7 +120,11 @@ API 키가 든 `.env`는 **읽거나 출력하지 않는다**. 프로젝트 PreT
 - 이미지를 사용자 확인 없이 바로 생성 → ❌. 1차는 `AI로 그릴 그림입니다` 플레이스홀더 + 예상 비용($0.03/장) 안내 → **승인 후** 생성·교체.
 - 모든 콘텐츠 슬라이드가 같은 레이아웃(불릿 좌·비주얼 우) → ❌ 단조롭다. 한 덱에서 카드 그리드·미러(비주얼 좌)·허브·가로 타임라인·중앙 statement·이미지 주연 등 3~4종 이상 섞는다(craft.md §2-11).
 - 줄간격이 좁아 빽빽 / 한글 라벨(SVG·kicker)을 모노폰트로 / 정확한 연도·숫자·고유명사를 손글씨 폰트(Nanum Pen)로 → ❌ 가독성. 본문 `line-height ≥ 1.5`, 한글은 Pretendard, 손글씨는 가벼운 메모·감탄에만(사실 정보는 정자체).
+- 본문·라벨을 **`.56em`(≈17px @30px base)보다 작게** → ❌ 안 읽힘. 최소 `.56em` 유지(슬라이드 번호·푸터·라이선스 fine-print만 예외).
+- 카드 썸네일 사진을 짧은 고정높이 `object-fit:cover`로 → ❌ 피사체 잘림(음식·인물). `aspect-ratio:3/2` 박스 + `object-fit:contain`(흰 배경)으로 전체 보이게. 큰 히어로는 cover OK.
+- 원형 번호·아이콘 뱃지가 옆 라벨보다 커서 아랫줄 침범 → ❌. 라벨 크기에 맞춰 작게(≈1.2~1.3em)·`margin-bottom` 확보, 빌드 후 스샷으로 수직 겹침 점검.
 - PDF를 `deck.pdf`로 저장 → ❌. 주제 이름(`"<주제>.pdf"`)으로.
+- 산출 `.html`을 `deck.html`로 그대로 남기기 → ❌. 마감 때 `deck.html`을 `<주제>v<N>.html`로 rename(=PDF와 같은 이름). 작업 중 편집은 `deck.html`로 OK.
 - `.pdf` 줄간격이 `.html`보다 좁다 → reveal print-pdf의 한계. `export_pdf_shots.py`로 HTML 스샷을 합쳐 1:1로 만든다.
 - SVG 라벨이 도형 밖으로 넘침/도형과 겹쳐 안 읽힘 → ❌. 라벨은 도형 **중앙**(타원이면 `cx,cy`에 `text-anchor:middle`)에 넣거나, 도형과 **충분히 띄운다**. 그리드 카드 높이가 제각각 → 래퍼 `flex column` + 카드 `flex:1`로 통일. 화살표·말풍선 꼬리는 **가리키는 대상(컵 등)에 실제로 닿게**.
 - kicker 번호가 슬라이드마다 다른 위치(가운데/좌측 등)에 떠 통일성이 없음 → ❌. kicker를 `.s-head`(absolute 좌상단 고정)로 감싸 **모든 슬라이드 같은 자리**에. (템플릿에 반영됨)
