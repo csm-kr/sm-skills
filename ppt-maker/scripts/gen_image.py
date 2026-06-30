@@ -11,19 +11,28 @@ import argparse, base64, json, os, sys, urllib.request, urllib.error
 from pathlib import Path
 
 
-def load_dotenv():
-    """이미 환경변수에 있으면 우선. 없으면 cwd부터 상위로 올라가며 .env 탐색."""
-    here = Path.cwd()
-    for d in [here, *here.parents]:
-        f = d / ".env"
-        if f.is_file():
-            for line in f.read_text(encoding="utf-8").splitlines():
-                line = line.strip()
-                if not line or line.startswith("#") or "=" not in line:
-                    continue
-                k, v = line.split("=", 1)
-                os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
-            return
+def load_dotenv(start_dirs=None):
+    """이미 환경변수에 있으면 우선. 없으면 .env를 탐색한다.
+    순서: cwd→상위, 그다음 스크립트(스킬) 폴더→상위 — 스킬 폴더만 떼어가도 동작.
+    찾은 .env 경로를 반환, 없으면 None."""
+    if start_dirs is None:
+        start_dirs = [Path.cwd(), Path(__file__).resolve().parent]
+    seen = set()
+    for start in start_dirs:
+        for d in [start, *start.parents]:
+            if d in seen:
+                continue
+            seen.add(d)
+            f = d / ".env"
+            if f.is_file():
+                for line in f.read_text(encoding="utf-8").splitlines():
+                    line = line.strip()
+                    if not line or line.startswith("#") or "=" not in line:
+                        continue
+                    k, v = line.split("=", 1)
+                    os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+                return f
+    return None
 
 
 def main():
@@ -40,7 +49,8 @@ def main():
     key = (os.environ.get("OPENAI_API_KEY") or os.environ.get("APIYI_API_KEY")
            or os.environ.get("OPENAI_KEY"))
     if not key:
-        sys.exit("ERROR: .env에 OPENAI_API_KEY(또는 APIYI_API_KEY)가 없습니다.")
+        sys.exit("SKIP: .env에서 API 키(OPENAI_API_KEY/APIYI_API_KEY)를 찾지 못해 "
+                 "이미지 생성을 건너뜁니다. (키 없이도 덱은 플레이스홀더로 계속 진행)")
     base = (os.environ.get("OPENAI_BASE_URL") or os.environ.get("APIYI_BASE_URL")
             or "https://api.apiyi.com/v1").rstrip("/")
     model = args.model or os.environ.get("OPENAI_IMAGE_MODEL") or "gpt-image-2-vip"

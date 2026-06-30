@@ -113,6 +113,11 @@
     /* 슬라이드 번호 / 푸터 브랜딩 */
     .reveal .slide-number { background: transparent; color: var(--ink-soft); font-family: "JetBrains Mono", monospace; font-size: 16px; }
     .deck-foot { position: absolute; bottom: 18px; left: 40px; font-family: "JetBrains Mono", monospace; font-size: 13px; letter-spacing: .12em; color: var(--ink-soft); text-transform: uppercase; }
+
+    /* 고정 헤더 — kicker(번호/라벨)를 모든 슬라이드 같은 위치(좌상단)에 통일.
+       콘텐츠 정렬(center/statement)과 무관하게 번호가 같은 자리에 오도록 절대배치. */
+    .reveal .s-head { position: absolute; top: 6.2%; left: 6.2%; z-index: 6; }
+    .reveal .s-head .kicker { margin-bottom: 0; }
   </style>
 </head>
 <body data-deck-title="SM Deck">
@@ -122,7 +127,7 @@
       <!-- ===== 표지 ===== -->
       <section class="s-title">
         <div class="pad center">
-          <span class="kicker"><span class="num">00</span> / PRESENTATION</span>
+          <div class="s-head"><span class="kicker"><span class="num">00</span> / PRESENTATION</span></div>
           <h1>여기에 <span class="accent">제목</span>을<br>적습니다</h1>
           <div class="rule"></div>
           <p class="muted">부제 한 줄. 무엇에 대한 발표인지 짧게.</p>
@@ -133,7 +138,7 @@
       <!-- ===== 섹션 구분 ===== -->
       <section class="s-section">
         <div class="pad center">
-          <span class="kicker"><span class="num">01</span> / SECTION</span>
+          <div class="s-head"><span class="kicker"><span class="num">01</span> / SECTION</span></div>
           <h1 class="accent">섹션 제목</h1>
           <div class="rule"></div>
           <p class="muted">이 섹션에서 다룰 내용 한 줄.</p>
@@ -143,7 +148,7 @@
       <!-- ===== 불릿 슬라이드 ===== -->
       <section class="s-bullets">
         <div class="pad center">
-          <span class="kicker"><span class="num">02</span> / 핵심 내용</span>
+          <div class="s-head"><span class="kicker"><span class="num">02</span> / 핵심 내용</span></div>
           <h2>요점은 이렇게</h2>
           <div class="rule"></div>
           <ul>
@@ -157,7 +162,7 @@
       <!-- ===== 텍스트 + 이미지 (원본 보존) ===== -->
       <section class="s-image">
         <div class="pad center">
-          <span class="kicker"><span class="num">03</span> / 그림</span>
+          <div class="s-head"><span class="kicker"><span class="num">03</span> / 그림</span></div>
           <div class="row">
             <div class="col">
               <h2>그림과 함께</h2>
@@ -179,7 +184,7 @@
       <!-- ===== 큰 한마디 ===== -->
       <section class="s-statement">
         <div class="pad center">
-          <span class="kicker"><span class="num">04</span> / 한마디</span>
+          <div class="s-head"><span class="kicker"><span class="num">04</span> / 한마디</span></div>
           <h2>강조하고 싶은 <span class="accent">핵심 문장</span>을 크게.</h2>
         </div>
       </section>
