@@ -38,6 +38,14 @@ def run(cmd):
     return r
 
 
+def run_media_guard(html: Path):
+    guard = Path(__file__).with_name("qa_media_guard.py")
+    r = subprocess.run([sys.executable, str(guard), str(html)], capture_output=True, text=True)
+    if r.returncode != 0:
+        sys.stderr.write((r.stdout or "") + (r.stderr or ""))
+        sys.exit("ERROR: qa_media_guard.py blocked PDF export. Fix media/map P0 findings first.")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("html")
@@ -49,6 +57,7 @@ def main():
     if not html.is_file():
         sys.exit(f"ERROR: 파일 없음: {html}")
     out = Path(args.out).resolve() if args.out else html.with_suffix(".pdf")
+    run_media_guard(html)
     file_url = html.as_uri()
 
     browse = None if args.decktape else find_browse()

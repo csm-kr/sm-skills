@@ -63,6 +63,13 @@ Example:
 - Split crowded content into another slide.
 - Shorten copy before reducing font size or margins.
 
+## Layout Variation Rule
+
+- Use variation to create rhythm across a deck: split layout, mirrored split, centered statement, matrix, timeline/flow, checklist, dashboard, image-led, or discussion/activity slide.
+- Variation is only acceptable when it preserves finish quality. If it creates awkward wrapping, overflow, weak alignment, cramped cards, inconsistent hierarchy, or a footer/source collision, the slide fails.
+- When content does not fit the current pattern, change the pattern before cramping the typography. Fewer cards, a wider table, a split slide, a central diagram, or an additional slide is better than a visually broken layout.
+- Do not repeat one card-grid structure for too many consecutive content slides, but do not introduce variation that looks less polished than the repeated layout.
+
 ## QA Checklist
 
 Before delivery:

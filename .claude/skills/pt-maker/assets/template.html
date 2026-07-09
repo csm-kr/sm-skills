@@ -100,6 +100,15 @@
     .polaroid figcaption { font-family: "Nanum Pen Script", cursive; font-size: 1.25em; color: var(--ink); margin-top: .35em; text-align: center; }
     .polaroid::before { content: ""; position: absolute; top: -14px; left: 50%; transform: translateX(-50%) rotate(-2deg); width: 110px; height: 26px; background: var(--tape); border: 1px solid rgba(199,52,99,0.25); }
 
+    /* Subject-safe media frames: use for portraits, products, food, landmarks, and real map bases. */
+    .media-safe { background: #fff; border: 1px solid var(--cream-line); border-radius: 8px; overflow: hidden; display: grid; place-items: center; }
+    .media-safe img { width: 100%; height: 100%; object-fit: contain; object-position: center; display: block; }
+    .media-safe.cover-ok img { object-fit: cover; }
+    .media-safe.portrait img { object-position: center top; }
+    .map-base { position: relative; background: #fff; border: 1px solid var(--cream-line); border-radius: 8px; overflow: hidden; }
+    .map-base > img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .map-overlay { position: absolute; inset: 0; pointer-events: none; }
+
     /* 큰 한마디 */
     .reveal .s-statement h2 { font-size: 2.1em; max-width: 16em; }
 

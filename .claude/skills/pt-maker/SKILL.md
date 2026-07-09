@@ -8,6 +8,18 @@ description: Use when Claude Code needs to create/design a presentation deck or 
 ## Required update: spacing and image decision rules
 These rules override older deck-building habits whenever they conflict.
 
+### Speaker-language and person-image saliency guardrail
+Treat visible language consistency and human-subject cropping as hard QA gates.
+
+- Match the visible deck language to the user's language and expected speaker/audience language unless the user explicitly asks otherwise. If the user speaks Korean and asks for a Korean PT, default all audience-facing labels to Korean.
+- Apply this to slide titles, section/kicker labels, chart labels, brackets, scoreboards, tier lists, badges, map pins, footers, captions, and short UI-like labels. Do not leave mixed English such as `winner pick`, `market signal`, `France`, `Spain`, `FRA`, `ARG`, etc. unless it is an official source name, proper noun, model/product name, player name, or intentionally taught abbreviation.
+- In a Korean deck, visible country/team names must be written in Korean. Three-letter country codes may be used only as small decorative metadata when paired with Korean names or when space makes the code clearly intentional.
+- Use the same rule for any other presentation language: country/team names and explanatory labels should match the deck language unless an official English brand/name is intentionally required.
+- After localization, rerender and inspect compact UI elements because translated names can be longer than three-letter codes.
+- For people photos, do not ship crops that cut off faces, heads, hands holding key objects, or the obvious salient subject. Use a better source image, `object-position`, a focal crop, or `object-fit: contain` when needed.
+- For player/person cards, inspect at least one full-size rendered slide for every reused crop pattern. If the cover or final slide uses a wide image crop, verify that the face and primary subject remain readable at thumbnail and full size.
+- Generated or self-made visuals must also preserve the salient subject. Do not let labels, badges, dark overlays, or decorative panels cover a face or the main object.
+
 ### Narrative arc and layout variation guardrail
 Treat deck rhythm as a hard design requirement, especially for promotional decks.
 
@@ -19,6 +31,10 @@ Treat deck rhythm as a hard design requirement, especially for promotional decks
 - Do not force variation into every slide. Use alternating split layouts, centered statement, member/grid, timeline, data cards, and final CTA only when the content supports that structure.
 - Promotional decks should end with a clear synthesis, not another generic summary slide. The final slide should answer "why this matters now" or "what the audience should remember."
 - During QA, inspect the contact sheet for rhythm: the eye should not see five nearly identical slides in a row, and the first/last slide should feel intentionally related but not duplicated.
+- Layout variation must never lower finish quality. If a varied layout causes weaker alignment, awkward wrapping, text overflow, cramped cards, or unclear hierarchy, revert to a stronger layout or redesign it.
+- Variation should be structural, not decorative: alternate between split, mirrored split, centered statement, matrix/table, flow/timeline, checklist, dashboard, and image-led layouts only when the content genuinely fits that form.
+- Do not use variation as an excuse for inconsistency. Headers, page/kicker logic, type scale, color tokens, safe areas, and footer/source behavior must remain stable.
+- If several slides repeat the same card grid but the copy does not fit, do not shrink the grid text. Change the layout pattern, reduce points, or split the slide while preserving polish.
 
 ### Spacing guardrail: readable but aesthetically light
 Treat readable typography as a hard QA gate, but do not make every slide oversized.
@@ -29,6 +45,40 @@ Treat readable typography as a hard QA gate, but do not make every slide oversiz
 - If a slide feels crowded, reduce words first, split the idea into another slide second, and only then reduce font size. Do not solve crowding by tightening line-height.
 - Small text is allowed only when it still looks airy: use wider line-height, shorter lines, and more surrounding whitespace.
 - During visual QA, reject any slide where Korean lines visually touch, where two text blocks read as one paragraph, where a label sits too close to an icon/number, or where body text looks heavy and poster-like because everything was forced to 32px+.
+
+### Text fit, wrapping, and layout integrity hard gate
+Treat text fit as a zero-tolerance QA gate. A slide that looks pleasant in the source HTML but breaks after PDF/export is a failed deck.
+
+- Any text that overflows its box, escapes the slide, touches a card edge, collides with another object, is clipped, or becomes visually trapped is a P0 hard fail.
+- Any awkward Korean line break that splits a word, number/unit, product name, proper noun, section number, or short label in a way that looks accidental is a P0 hard fail.
+- Any table, card grid, checklist, timeline, diagram label, or footer/source note whose wrapping makes the layout look misaligned, cheap, or broken is a P0 hard fail even if the text is technically readable.
+- Do not “fix” overflow by only shrinking text. First reduce copy, then simplify the structure, then split the slide, and if the slide still does not fit, redesign the layout completely.
+- If a row/column card layout cannot hold the text cleanly, change the layout: use fewer cards, a larger matrix, a split layout, a single diagram, or multiple slides.
+- Before delivery, inspect the rendered PDF, not only the browser HTML. If the HTML looks good but the PDF/contact sheet is wrong, the deck is not done.
+
+### Text overflow zero-score guardrail
+Treat text stability as a hard fail, not a polish preference. A slide can have attractive typography and still score zero if text escapes, clips, collides, or wraps awkwardly in the rendered PDF/contact sheet.
+
+- Reject any slide with text outside its container, clipped text, overlapping text, Korean syllables or English words broken in an unnatural place, labels touching borders/icons/footers, or a line break that makes the sentence visually unbalanced.
+- QA must inspect rendered output, not only HTML/CSS. Check the contact sheet first, then full-size PNGs for dense slides, long headings, code blocks, cards, tables, diagrams, and any slide the user flagged.
+- When a text defect is found, the agent must take corrective action before reporting: shorten the copy, reduce card/code/supporting text size, widen or move the container, split the slide, or simplify the layout. Do not merely list the issue as a QA note.
+- Prefer deleting words and simplifying claims before shrinking below the readable floor. For dense cards/code, use the deck's proven small-content scale rather than keeping all body text at the base size.
+- After every corrective action, rerender the PDF/contact sheet and recheck the affected slides. Do not deliver a deck with unresolved text overflow, clipping, or broken wrapping.
+- In scoring, any unresolved text overflow/clipping/overlap/broken wrapping is `P0` and sets the deck score to `0` until fixed, regardless of overall visual style.
+
+### Rendered micro-polish QA guardrail
+Treat these as mandatory rendered-output checks, not subjective afterthoughts. The reviewer must call them out with page numbers, and the main agent must fix and rerender before delivery when they affect finish quality.
+
+- **Bad short-line wrap**: If a heading or prominent sentence wraps into two lines where the second line is only a short tail, mark it `P2` at minimum. If the short tail makes the slide look broken or cheap, mark it `P0`. Prefer widening the text frame, reducing or moving the image/map, shortening copy, or using a slightly smaller heading within the approved scale. Do not accept an ugly two-line title just because it technically fits.
+- **Five-character orphan line**: If a rendered Korean heading or prominent sentence leaves any wrapped line, especially the final line, with 5 Korean characters or fewer excluding punctuation and spaces, mark it `P0` unless the break is clearly intentional typography. Fix it by changing the layout first: widen the text region, reduce/reposition the image/map, change the grid, or shorten the phrase. Do not accept it as a font-size-only fix.
+- **One-line opportunity**: If a title can naturally fit on one line by modestly reducing the visual region or widening the text region, do that before shrinking text. This is especially important for route/stage slides and activity slides.
+- **Stale template or leftover copy**: Any visible text from a previous version, placeholder, old prompt, duplicated label, or removed component is a `P0` stale-content failure. Delete it and rerender.
+- **Bottom spill and lower-third crowding**: Any content that exits the safe area, touches the footer, overlaps another element, or looks compressed into the bottom edge is a `P0`. Fix by expanding the content area horizontally, moving material to the right/left, increasing map/image flexibility, reducing list count, or splitting the structure. Do not solve by only shrinking text.
+- **Title-to-subtitle spacing**: On closing, statement, and section slides, the main title and supporting line must have deliberate breathing room. If they look visually stuck together, mark `P2`; if they touch or undermine hierarchy, mark `P0`.
+- **Large-heading neighbor spacing**: When using very large display type, the adjacent subtitle/body must not look snapped to the headline. If the headline and supporting paragraph read as one cramped block, mark it `P2`; if the hierarchy becomes unclear or the lines nearly touch, mark it `P0`. Fix with grid spacing, margin, copy position, or layout changes before reducing font size.
+- **Text over image/map contrast**: Any text, footer, caption, or label placed over a map, photo, screenshot, or busy illustration must remain clearly readable in the rendered PDF. If the background image makes text hard to read, mark it `P0`. Fix by moving or dimming the visual, adding a solid/translucent complementary text panel, increasing local contrast, or relocating the text; do not rely on hope or thumbnail-only inspection.
+- **Flagged-page recheck**: When a user names pages or visual defects, export full-size PNGs for those exact pages after the fix and inspect them again before reporting. The final response must mention that the flagged pages were rechecked.
+- **Regression recheck**: After fixing any page, regenerate the full final PDF/contact sheet from the exact current source and inspect the whole deck for new wrapping, overflow, contrast, page-order, or visual-crop regressions. Do not deliver based only on the fixed page PNGs.
 
 ### Composition balance guardrail: do not dump content at the bottom
 Treat layout balance as a hard QA gate. A slide can have enough whitespace and still fail if the visual weight is pushed to the bottom edge or one side.
@@ -83,11 +133,21 @@ Before final delivery, read and apply [reference/alignment-eval-rubric.md](refer
 ### Mandatory PT QA iteration guardrail
 Before final delivery, read and apply [reference/general-pt-making-checklist.md](reference/general-pt-making-checklist.md). This is a required process gate, not an optional review note.
 
+- Run `python scripts/qa_media_guard.py <final-or-candidate.html>` before PDF export and after every meaningful HTML/CSS/assets edit. Any `P0` from this script blocks export/delivery until fixed. `export_pdf.py` and `export_pdf_shots.py` also run this guard automatically and must stop on P0.
+- Use `python scripts/qa_media_guard.py <html> --json` when passing results to a QA reviewer agent. The agent must treat every script `P0` as a real P0 and then verify the affected pages in rendered PDF/PNG.
 - Render PDF and contact sheet before claiming the deck is done.
-- Inspect full-size PNGs for the cover, section openers, dense diagrams/SVGs/timelines, activity/quiz slides, and final slide.
+- Generate the contact sheet from the exact final PDF artifact, not from cached browser screenshots, stale PNGs, or an earlier export. If page order is uncertain, generate a numbered PDF contact sheet and verify page 1..N against the intended outline.
+- Inspect full-size PNGs for the cover, section openers, person/photo-led slides, real-map slides, dense diagrams/SVGs/timelines, activity/quiz slides, and final slide.
+- When the user flags a page number or footer collision, export full-size PNGs for both the PDF page ordinal and any audience-facing slide label with the same number, then inspect both before scoring. Example: if the user says page 15 and the deck has a cover labeled 00, recheck PDF page 15 and the slide whose footer says `15 / N`.
+- Treat any body/card/chart/source text that touches, overlaps, sits underneath, or visually competes with the footer, source note, or page number as `P0 footer collision`. The deck cannot be exported or delivered until the source layout is changed, the PDF/contact sheet is regenerated from that exact source, and the flagged page PNGs are rechecked.
 - If the environment provides agent/subagent tools, always run a dedicated QA reviewer agent before delivery. Give it the contact sheet, selected full-size PNGs, and the checklist. The reviewer must return only P0 hard fails, P2 polish candidates, 100-point score, required fixes, and recheck pages.
+- Give the QA reviewer the `qa_media_guard.py` output too. If the script reports unsafe media crop or inline real-map SVG, the reviewer must inspect those pages and keep the deck failed unless the source was changed or a verified `data-crop-ok="true"` crop with `data-rendered-qa="true"` or `data-fullsize-qa="true"` full-size rendered proof exists.
 - If agent tooling is unavailable, record `qa-agent: unavailable` and run the same checklist manually.
+- QA is an action loop. If rendered text is too large, clipped, outside a box, badly wrapped, or visually broken, immediately edit the source deck and rerender; do not stop at diagnosis.
+- Treat wrong final PDF page order, duplicated/missing pages, stale contact sheets, and HTML/PDF mismatches as P0 export failures. Fix the export path and rerender before delivery.
 - Treat any P0, export/aspect-ratio failure, or score below 90/100 as a blocking failure. Fix source HTML/CSS/assets, rerender PDF/contact sheet, and run the QA checklist again.
+- Use a scored QA loop for every revision: score the rendered deck on the 100-point rubric, record `qa-score`, `p0-count`, `p2-count`, `fixed-pages`, and `recheck-pages` in build notes, then iterate until `p0-count = 0` and `qa-score >= 90`. If a user flags specific pages, those pages must appear in `recheck-pages` after the fix.
+- Every QA loop must include regression inspection: compare the new contact sheet against the prior accepted version or against the intended outline, then record `regression-check: pass/fail` and any newly affected pages. A failed regression check is blocking even if the originally flagged pages look fixed.
 - After internal QA passes, report the QA result and provide the HTML/PDF candidate for user review before entering revision work. Treat user-requested changes as a new version and rerun the QA loop before reporting again.
 - Do not export PPTX by default. Export PPTX only when the user explicitly asks for PPTX or the agreed output format requires it, and only after PDF/contact sheet QA passes with no P0 and score >= 90/100.
 
@@ -98,20 +158,31 @@ Score each candidate from 0-10:
 
 - Content match, 0-3: directly shows the subject, place, species, behavior, data context, or response method named on the slide.
 - Evidence value, 0-2: comes from an official, primary, educational, or clearly attributable source.
-- Visual clarity, 0-2: readable at slide size, not dark, blurred, over-cropped, cluttered, or watermarked.
-- Layout fit, 0-2: works in the slide crop/aspect ratio without hiding the important subject.
+- Visual clarity, 0-2: readable at slide size, not dark, blurred, over-cropped, cluttered, or watermarked. If a face, head, product, landmark, food, or map detail is important to the slide, it must remain visible in the rendered PDF.
+- Layout fit, 0-2: works in the slide crop/aspect ratio without hiding the important subject. A candidate that only works by cutting off the face/head or core object scores 0 for layout fit.
 - Tone fit, 0-1: supports the deck mood and does not look like generic stock filler.
 
 Use the image when score >= 7. If the best available web image scores 4-6, prefer a simple self-made diagram/chart/SVG when the slide is explanatory. If the best available web image scores <= 5 and the slide needs a concrete visual, trigger image generation with a short note in the working log: `image-generation-trigger: best web score X/10, reason ...`.
 
 Generated images must be clearly illustrative, not presented as documentary evidence. For factual slides, keep sourced data/text separate from generated artwork and add an asset note in `assets/CREDITS.txt`.
 
+### Image crop and real-map overlay hard gate
+Treat image subject integrity as a hard QA gate. A visually stylish crop still fails if it removes the information the slide depends on.
+
+- For people, athletes, interviewees, founders, artists, and profile photos, the face must be intact unless the slide is explicitly about an abstract body/detail crop. Do not cut off the top of the head, eyes, mouth, chin, hands holding the key object, jersey/name cues, or the identity-bearing part of the image.
+- For products, food, logos, UI screenshots, buildings, landmarks, and artifacts, the named subject must remain whole enough to recognize. If a short fixed-height `object-fit: cover` frame cuts the subject, switch to `object-fit: contain`, change `object-position`, use a wider/taller frame, choose another image, or redesign the slide.
+- Hero photos may use `cover` only after rendered QA confirms the important subject is not clipped. Thumbnails, cards, portraits, documentary photos, and evidence-like visuals default to `contain` or a verified focal crop. A focal-crop override must use `data-crop-ok="true"` plus `data-rendered-qa="true"` or `data-fullsize-qa="true"` after inspecting the rendered full-size PDF/PNG.
+- Real geography maps are not freehand illustration tasks. For country, city, route, travel, region, language, food, history, or geopolitics slides, first fetch an official/public/licensed map or screenshot map base, cite it in `assets/CREDITS.txt`, then draw pins, route lines, translucent regions, labels, and callouts as an overlay on top.
+- Do not hand-draw country outlines, canton/state borders, coastlines, transit routes, or real geographic shapes unless the slide clearly says it is a conceptual schematic and geographic accuracy is not part of the claim.
+- If no acceptable map base can be used, replace the map with a non-geographic diagram/table, ask for a source map, or state the limitation. Do not invent a map outline.
+- During QA, inspect all person-photo, product-photo, landmark, screenshot, and map slides at full size. Cropped faces/subjects, inaccurate homemade maps, misplaced pins, or unreadable map labels are P0 failures until fixed.
+
 ### Visual material requirement guardrail
 Treat concrete visual material as mandatory for major slides, not optional decoration.
 
 - Do not ship text-only major slides. Cover, chapter opener, key concept, evidence/example, comparison, process/timeline, product, place, and closing slides must each have a planned visual asset.
 - Acceptable visual assets: user/original image, official/public photo, screenshot, chart/data visualization, SVG diagram/timeline/map/card grid, or approved AI-generated illustration.
-- Before building, write a `visual plan` for every slide in the outline: asset type, source/generation path, crop/layout role, and fallback.
+- Before building, write a `visual plan` for every slide in the outline: asset type, source/generation path, crop/layout role, subject/focal-point safety, map-base source if relevant, and fallback.
 - If no suitable external image exists, build a self-made SVG/chart/diagram first for explanatory content. Use AI generation for conceptual or atmospheric scenes only after placeholder + cost + user approval.
 - During QA, reject any deck with two consecutive content slides that are text-only, or any slide whose title promises a visual but the body does not show one.
 
@@ -147,15 +218,15 @@ output/NN_<slug>_<YYYYMMDD>/    ← 덱마다 폴더 (순번_주제_날짜)
 archive/                        ← 작업 스크래치 격리
 ```
 
-- 새 덱은 `python .claude/skills/pt-maker/scripts/new_deck.py "<slug>"` 로 폴더를 만든다(순번=기존 최대+1, 날짜=오늘 자동). 출력된 경로의 `deck.html`을 편집.
+- 새 덱은 `python .codex/skills/pt-maker/scripts/new_deck.py "<slug>"` 로 폴더를 만든다(순번=기존 최대+1, 날짜=오늘 자동). 출력된 경로의 `deck.html`을 편집.
 - 덱 산출물은 **항상 그 덱 폴더 안**에 둔다. 루트에 흩뿌리지 않는다.
 - 덱 내부 이미지는 전부 상대경로 `assets/...` (폴더째 옮겨도 안 깨짐).
 
-## 입력 (Claude Code가 이해하는 무엇이든)
+## 입력 (Codex가 이해하는 무엇이든)
 손글씨·스케치·이미지 같은 참고자료가 있을 법하면 **먼저 "인풋을 넣어 달라"고 요청**한다. 받은 뒤에는 **그걸 어떻게 쓸지를 사용자에게 물어본 다음** 진행한다 — 단정하고 바로 쓰지 않는다.
 
 - **자유 텍스트 토론**: 주제만 주면 같이 구조를 잡아간다.
-- **이미지/스케치/필기**: 첨부 이미지나 `input/` 파일을 Claude Code가 직접 읽는다. 받은 이미지를 **어떻게 쓸지 반드시 확인**한다:
+- **이미지/스케치/필기**: 첨부 이미지나 `input/` 파일을 Codex가 직접 읽는다. 받은 이미지를 **어떻게 쓸지 반드시 확인**한다:
   - **(a) 내용으로만 활용** — 손글씨·메모에 적힌 데이터·아이디어를 읽어 **정자체 슬라이드로 재구성**(깔끔하게 타이핑).
   - **(b) 원본 그대로 임베드** — 손그림 다이어그램·스케치 자체를 **폴라로이드 프레임에** 리사이즈·재생성 없이 그대로 넣음(§2).
   손그림 자체에 의미가 있으면 보통 (b), 텍스트·데이터 메모면 (a)지만 **추측하지 말고 물어본다**. 참고자료는 `input/`에 두면 거기서 읽는다.
@@ -167,7 +238,7 @@ archive/                        ← 작업 스크래치 격리
 
 1. **소스 확보 (Grill Me + 자료 인테이크)** → [reference/intake.md](reference/intake.md)를 따른다. 먼저 참고자료 여부를 확인하고, 없으면 바로 인터뷰로 들어간다. 질문은 **한 번에 하나씩** 하며 목적, 타겟 독자/청중, 한줄메시지, 발표 상황, 근거/데이터, CTA, 기획 방향을 좁힌 뒤 분위기/톤, 색상 팔레트, 사진·스크린샷·AI 이미지 추가 레벨을 확인한다. 받은 자료는 목적별로 분류하고, 손글씨·스케치·이미지는 활용 방식((a) 내용 재구성 vs (b) 원본 임베드)을 물어본 뒤 진행한다. → 산출물: 인테이크 노트 + 자료 맵 + 비주얼 방향.
 2. **웹 리서치** → [reference/research.md](reference/research.md). 근거가 빈 항목·최신 데이터를 웹으로 보강하고, 사용자가 웹에서 찾아서 만들라고 한 경우에는 이 단계를 생략하지 않는다. 리서치 결과는 `claim / source / date / slide-use` 형태로 소스 맵에 남긴다.
-3. **기획** → 스토리 짜기 전에 먼저 [reference/product-judgment.md](reference/product-judgment.md)로 **제품 판단 블록**(타겟 순간·king action·AI 특이점·신뢰 장치·반복 루프·뺄 것)을 한 번 잡는다 — 제품/AI 기능을 파는 덱이면 필수, 단순 정보 전달 덱이면 생략 가능. 그 위에서 **타겟 청중을 확정**하고 그들에게 꽂히는 한줄메시지·스토리라인·Chapter 구조를 잡는다. 슬라이드 개요(슬라이드별 제목+요점+`visual plan`)를 사용자와 합의. `visual plan`에는 사진/스샷/차트/SVG/생성 후보, 출처·경로, 레이아웃 역할, fallback을 적는다. **One idea per slide** — 제목에 "그리고/및"이 들어가면 두 장으로.
+3. **기획** → 스토리 짜기 전에 먼저 [reference/product-judgment.md](reference/product-judgment.md)로 **제품 판단 블록**(타겟 순간·king action·AI 특이점·신뢰 장치·반복 루프·뺄 것)을 한 번 잡는다 — 제품/AI 기능을 파는 덱이면 필수, 단순 정보 전달 덱이면 생략 가능. 그 위에서 **타겟 청중을 확정**하고 그들에게 꽂히는 한줄메시지·스토리라인·Chapter 구조를 잡는다. 슬라이드 개요(슬라이드별 제목+요점+`visual plan`)를 사용자와 합의. `visual plan`에는 사진/스샷/차트/SVG/생성 후보, 출처·경로, 레이아웃 역할, subject/focal-point 안전성, 지도라면 map-base 출처, fallback을 적는다. **One idea per slide** — 제목에 "그리고/및"이 들어가면 두 장으로.
 4. **구성/빌드** → `new_deck.py "<slug>"`로 덱 폴더(`output/NN_slug_date/`)를 만들고 출력된 `deck.html`의 `<section>`을 복제·수정. 사용자가 참고자료 덱(PPT/PDF)을 주면 [reference/reference-ingest.md](reference/reference-ingest.md)로 콘텐츠+스타일을 흡수(스타일은 확인 후 취향 반영). 주요 슬라이드는 텍스트만으로 빌드하지 않고, `visual plan`의 시각자료 슬롯을 실제 사진·스샷·차트·SVG·승인된 생성 이미지 중 하나로 채운다. **빌드 내내 craft.md의 [★ 심미성 체크리스트](reference/presentation-craft.md)(가독성·통일성·균형·여백·시각자료·다양성·디테일)를 기준으로 만든다.** → 검증: 슬라이드 수 = 개요.
 5. **이미지/시각자료** → 모든 주요 슬라이드는 시각자료 슬롯을 가진다. 웹·공식·공개 자료에서 먼저 찾고(스샷/실물 우선), 데이터·흐름·비교는 인라인 SVG/차트/다이어그램을 우선한다. 생성이 필요하면 **묻지 말고 바로 생성하지 않는다**: 먼저 해당 슬라이드에 `🖼 AI로 그릴 그림입니다` 플레이스홀더로 1차 초안을 만들고, **예상 장수·비용($0.03/장)을 알려 사용자에게 생성 여부를 확인**한다. 승인받은 뒤에만 `gen_image.py`로 생성(presentation-craft.md §3 기준·현재 활성 팔레트 반영)해 플레이스홀더를 교체. 사용자 원본 이미지는 생성 말고 그대로 임베드. 생성·임베드 이미지는 모두 그 덱의 `assets/`에 둔다(사용자 원본은 `input/`→`assets/` 복사).
 6. **필수 QA iteration + 사용자 검수 단계** → PDF/contact sheet를 렌더링하고 [reference/general-pt-making-checklist.md](reference/general-pt-making-checklist.md)와 [alignment-eval-rubric.md](reference/alignment-eval-rubric.md)로 채점한다. agent/subagent 도구가 있으면 **반드시 dedicated QA reviewer agent**를 실행해 P0/P2/100점 점수/수정 목록을 받는다(없으면 `qa-agent: unavailable` 기록 후 수동으로 동일 체크). P0가 하나라도 있거나 점수 < 90이면 source HTML/CSS/assets를 수정 → PDF/contact sheet 재렌더 → agent/manual QA를 다시 반복한다. 통과하면 먼저 QA 결과(score, P0=0, 남은 P2)와 HTML/PDF 후보를 사용자에게 보고하고, 그 다음 수정 요청 단계로 들어간다. 사용자가 수정 요청을 주면 새 버전으로 처리해 수정 → 재렌더 → QA 반복 → 재보고한다. **변경마다 덱 버전을 올린다.** 최종 마감 시 이번 덱에서 배운 취향을 **diff로 제안**하고 사용자가 확인한 것만 `taste-profile.md`에 기록(version +1). 조용히 바꾸지 않는다. 생성 이미지 개수·비용($0.03/장)도 요약.
@@ -206,7 +277,7 @@ Color Hunt(`https://colorhunt.co/`)는 **reference 자료가 아니라 palette s
 **(b) 원본 임베드로 확인된 경우에만**(§입력에서 활용 방식을 물어본 뒤). `s-image`의 `<figure class="polaroid">` 안 `<img src="...">`에 원본 경로 또는 data URI를 넣는다. **리사이즈·재생성 금지**, 원본 그대로. 여러 장이면 `s-image` 슬라이드를 복제.
 
 ## 2.5 웹/스샷 쇼케이스 & 검증
-- **결과물 스샷**: 배포된 웹은 Claude Code 브라우저/browse 도구로 열고 로드 완료 후 스크린샷을 찍는다. SPA가 networkidle 타임아웃이면 load 완료 기준으로 확인한다.
+- **결과물 스샷**: 배포된 웹은 Codex 브라우저 도구로 열고 로드 완료 후 스크린샷을 찍는다. SPA가 networkidle 타임아웃이면 load 완료 기준으로 확인한다.
 - **세로로 긴 스샷**(풀페이지·상세페이지)은 폴라로이드 대신 **썸네일 카드** — `.thumb{height:~96px;overflow:hidden} img{object-fit:cover;object-position:top}`. 여러 프로젝트는 4열 카드 그리드로 쇼케이스.
 - **슬라이드별 검증**: 브라우저에서 `Reveal.configure({transition:'none'}); Reveal.slide(N)`를 실행한 뒤 스크린샷을 찍는다. (fade 전환 중 캡처하면 이전 슬라이드가 겹쳐 보이는 잔상이 생김 → 전환을 끄면 깨끗.)
 - **버전**: 표지/푸터에 `vX.Y`를 표기하고 변경마다 올린다.
@@ -227,6 +298,7 @@ python scripts/gen_image.py "프롬프트" output/NN_slug_date/assets/img1.png -
 #    (PowerShell)  Rename-Item output/NN_slug_date/deck.html "<주제>v<N>.html"
 mv output/NN_slug_date/deck.html "output/NN_slug_date/<주제>v<N>.html"
 # 1) 그 html에서 PDF 생성 — deck.pdf 말고 같은 주제+버전 이름으로.
+python scripts/qa_media_guard.py "output/NN_slug_date/<주제>v<N>.html"                         # media crop/map P0 guard
 python scripts/export_pdf.py "output/NN_slug_date/<주제>v<N>.html" "output/NN_slug_date/<주제>v<N>.pdf"        # 기본: print-pdf
 python scripts/export_pdf_shots.py "output/NN_slug_date/<주제>v<N>.html" "output/NN_slug_date/<주제>v<N>.pdf"   # 화면과 1:1(스샷 합치기)
 python scripts/verify_pdf.py "output/NN_slug_date/<주제>v<N>.pdf"                                              # bleed 검증(콘택트 시트) → Read로 확인
@@ -252,9 +324,10 @@ API 키가 든 `.env`는 **읽거나 출력하지 않는다**. `gen_image.py`는
 | 웹에서 찾아 PT | `reference/research.md`로 소스 맵 작성 → 개요 합의 → `new_deck.py` |
 | 사용자 그림 넣기 | `input/`→덱 `assets/` 복사 후 `s-image` polaroid `<img src>`에 임베드 |
 | 일러스트 생성 | `gen_image.py "프롬프트" output/NN_.../assets/out.png` |
+| media guard | `qa_media_guard.py output/NN_.../<주제>v<N>.html` |
 | PDF | `export_pdf.py output/NN_.../deck.html` |
 | PPTX(명시 요청 시만) | PDF/contact sheet QA 통과 후 `export_pptx.py output/NN_.../<주제>v<N>.html output/NN_.../<주제>v<N>.pptx` |
-| 미리보기 | Claude Code 브라우저/browse 도구로 `file://...output/NN_.../deck.html` 열어 스크린샷 |
+| 미리보기 | Codex 브라우저 도구로 `file://...output/NN_.../deck.html` 열어 스크린샷 |
 
 ## Common mistakes
 - 받은 이미지(손글씨·스케치)를 **어떻게 쓸지 안 묻고** 임의로 임베드/재구성 → ❌. 먼저 인풋을 넣어 달라고 요청하고, 받으면 (a) 내용 재구성 vs (b) 원본 임베드를 **물어본 뒤** 진행.
@@ -265,7 +338,8 @@ API 키가 든 `.env`는 **읽거나 출력하지 않는다**. `gen_image.py`는
 - 모든 콘텐츠 슬라이드가 같은 레이아웃(불릿 좌·비주얼 우) → ❌ 단조롭다. 한 덱에서 카드 그리드·미러(비주얼 좌)·허브·가로 타임라인·중앙 statement·이미지 주연 등 3~4종 이상 섞는다(craft.md §2-11).
 - 줄간격이 좁아 빽빽 / 한글 라벨(SVG·kicker)을 모노폰트로 / 정확한 연도·숫자·고유명사를 손글씨 폰트(Nanum Pen)로 → ❌ 가독성. 본문 `line-height ≥ 1.5`, 한글은 Pretendard, 손글씨는 가벼운 메모·감탄에만(사실 정보는 정자체).
 - 본문·불릿을 무조건 32px 이상으로 키워 둔탁하게 만들기 → ❌. 일반 HTML 덱은 Pretendard 기준 본문 28-30px, hard floor 26px가 기본. 라벨은 20-22px, 출처/fine-print는 15-16px까지 허용하되, 작아 보이면 문장을 줄이거나 슬라이드를 나눈다. 큰 발표장/프로젝터용이면 32px로 올린다.
-- 카드 썸네일 사진을 짧은 고정높이 `object-fit:cover`로 → ❌ 피사체 잘림(음식·인물). `aspect-ratio:3/2` 박스 + `object-fit:contain`(흰 배경)으로 전체 보이게. 큰 히어로는 cover OK.
+- 카드 썸네일/인물/선수/제품/음식 사진을 짧은 고정높이 `object-fit:cover`로 → ❌ 피사체 잘림. `aspect-ratio:3/2` 박스 + `object-fit:contain`(흰 배경) 또는 검증된 focal crop으로 얼굴·머리·손·로고·핵심 사물을 보존한다. 큰 히어로도 중요한 얼굴/피사체가 잘리면 실패다.
+- 실제 국가/도시/여행/언어권/음식권/역사 지도에서 손그림 SVG 개략도를 지도로 제시 → ❌. 웹/공식/공개 라이선스 지도 베이스를 가져오고, 그 위에 핀·루트·영역·라벨을 overlay로 그린다. 직접 그린 지도는 "개념 스케치"라고 명시된 경우에만 허용한다.
 - 원형 번호·아이콘 뱃지가 옆 라벨보다 커서 아랫줄 침범 → ❌. 라벨 크기에 맞춰 작게(≈1.2~1.3em)·`margin-bottom` 확보, 빌드 후 스샷으로 수직 겹침 점검.
 - PDF를 `deck.pdf`로 저장 → ❌. 주제 이름(`"<주제>.pdf"`)으로.
 - 산출 `.html`을 `deck.html`로 그대로 남기기 → ❌. 마감 때 `deck.html`을 `<주제>v<N>.html`로 rename(=PDF와 같은 이름). 작업 중 편집은 `deck.html`로 OK.

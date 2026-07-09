@@ -2,6 +2,22 @@
 version: 7
 updated: 2026-07-09
 ---
+
+## 0. Text stability preference
+- Text stability is the highest-priority aesthetic gate. Good-looking typography scores zero if rendered text overflows, clips, overlaps, touches borders/icons/footers, or wraps in an awkward place. [conf: high]
+- For dense decks, prefer shorter copy and smaller support/card/code text over forcing every text block to stay visually large. Use the CORTIS-style scale as a reference: strong headlines can stay large, but card bodies, captions, code, and support labels should often sit in the smaller content scale. [conf: high]
+- QA must act, not only report. When rendered PNG/PDF inspection finds broken text, the agent should shorten, resize, widen, split, or re-layout the slide, then rerender and recheck. [conf: high]
+
+## 0.1 Layout variation and final-PDF QA preference
+- Use layout variation for rhythm in longer study/lecture decks, but only when the varied layout preserves finish quality: alignment, hierarchy, spacing, text fit, and source/footer behavior must stay clean. [conf: high]
+- If a variation causes awkward wrapping, overflow, cramped cards, weak hierarchy, or inconsistent visual language, redesign the slide rather than accepting the variation. [conf: high]
+- If text does not fit, prefer copy reduction, slide splitting, wider/repositioned containers, fewer cards, a matrix/diagram, or a full layout change before shrinking type or tightening line-height. [conf: high]
+- Final QA must inspect the exact delivered PDF, not only the HTML view. Wrong PDF page order, duplicate/missing pages, stale contact sheets, or HTML/PDF mismatches are zero-score export failures. Use a numbered PDF contact sheet when there is any doubt. [conf: high]
+
+## 0.2 Photo crop and real-map preference
+- Web photos must preserve the important subject. Faces, heads, identity cues, food, products, logos, landmarks, and screenshot details should not be cut off by `object-fit: cover`; use contain, focal positioning, a different frame, a different image, or a redesigned layout. [conf: high]
+- Real maps should use a sourced web/official/public map base with pins, routes, regions, and labels drawn on top. Do not hand-draw inaccurate country/city/region maps when geographic accuracy matters. [conf: high]
+
 # 사용자 취향 프로필 (taste-profile)
 
 > pt-maker가 덱을 만들기 전에 읽고 기본값으로 적용하는 취향 정본.
@@ -18,8 +34,7 @@ updated: 2026-07-09
 - default: 크림 종이 테마 — 토큰은 presentation-craft.md / SKILL.md 표 기준 고정 [conf: high]
 - 한글 줄바꿈: `word-break: keep-all`(어절 단위) + 제목 `text-wrap: balance`·본문 `pretty`로 orphan 금지 [conf: high] — 템플릿에 반영함
 - 한글 라벨(kicker 등)은 영문용 모노폰트 자간 금지, **Pretendard**로 [conf: high] — 템플릿에 반영함
-- **일반 HTML 덱 본문은 Pretendard 28-30px가 미감 기본값** — 32px를 모든 본문 최소로 강제하면 투박해 보임. hard floor는 26px, 카드 본문 24-26px, 라벨 20-22px, 출처 15-16px. 큰 발표장/프로젝터용이면 32px로 올림 [conf: high]
-- **(모든 덱) 주요 슬라이드는 시각자료 필수** — 표지·챕터 오프너·핵심 개념·사례·근거·비교·프로세스·마감 슬라이드는 사진/스샷/차트/SVG/승인된 AI 일러스트 중 하나를 반드시 배치. 우선순위: 내용 맞는 실사 사진 → 스샷/차트/SVG → 없으면 생성(생성은 비용 안내·승인 후) [conf: high]
+- **(모든 덱) 내용에 맞는 이미지를 적극 쓰는 게 최우선** — 글자만 있는 슬라이드 지양. 우선순위: 내용 맞는 실사 사진 → 애니·일러스트 → 없으면 생성(생성은 비용 안내·승인 후) [conf: high]
 - 데이터·흐름·다이어그램은 생성 이미지보다 **인라인 SVG 미니비주얼** 선호(비용 0·브랜드 일관) [conf: high]
 - **여행·장소 소개형 덱은 웹 자유 라이선스 실사진을 적극 사용**(주제별 히어로 1장 + 스팟 카드 썸네일). 소스 Openverse(license=cc0,pdm,by,by-sa), 출처는 `assets/CREDITS.txt`+엔드 슬라이드 표기. AI 생성보다 실사진/SVG 우선. 단 데이터·흐름·다이어그램은 여전히 SVG [conf: med]
 - 카드 썸네일 사진은 **잘림 금지** → `aspect-ratio:3/2` 박스 + `object-fit:contain`(흰 배경)으로 피사체 전체를 보이게. 짧은 고정높이 cover는 음식·피사체를 잘라먹어 싫어함 [conf: high]
@@ -34,14 +49,12 @@ updated: 2026-07-09
 ## 4. 안티-취향 (싫어하는 것)
 - 어절 중간에서 끊기거나 끝 단어가 홀로 떨어지는(orphan) 줄바꿈 [conf: high]
 - 슬라이드가 휑하게 빈 곳이 많은 것 [conf: high]
-- 주요 슬라이드가 텍스트만 있거나, 콘텐츠 슬라이드가 두 장 이상 연속 텍스트-only로 이어지는 것 [conf: high]
 - 모든 콘텐츠 슬라이드가 같은 레이아웃 → 단조로움 [conf: high]
 - 줄간격이 좁아 빽빽한 글 / 한글 라벨이 모노폰트 / 정확한 정보가 손글씨라 안 읽힘 [conf: high]
 - 원형 번호·아이콘 뱃지가 옆 라벨보다 커서 아랫줄을 침범 / 박스 안 텍스트 좌우 정렬이 들쭉날쭉 / **박스 안 라벨 바로 밑에 제목이 딱 붙어 빡빡함**(라벨↔제목 간격·큰 제목 줄간격 부족) [conf: high]
-- **작은 글씨로 욱여넣기 금지 + 과대 본문 금지** — 일반 HTML 덱은 본문·불릿 28-30px, hard floor 26px. 32px 이상은 큰 발표장/프로젝터나 statement용으로만. 작아지면 문장을 줄이거나 슬라이드를 나눈다 [conf: high]
+- **작은 글씨로 욱여넣기 금지** — 본문·불릿은 32px 이상, 보조 라벨은 24px 이상, 출처·fine-print도 18px 이상. 작아지면 문장을 줄이거나 슬라이드를 나눈다 [conf: high]
 <!-- 사용자가 명시적으로 싫다고 한 것만. craft.md의 일반 안티패턴과 구분 -->
 
 ## 운영 메모
 - 덱 마감 시 생성 이미지 개수·비용($0.03/장) 요약 출력 [conf: high]  <!-- 기존 feedback 메모리 -->
 - **이미지 생성 전 반드시 확인** — 1차는 `AI로 그릴 그림입니다` 플레이스홀더 + 예상 비용 안내 → 사용자 승인 후 생성·교체 [conf: high]
-- 개요/빌드 단계에서 모든 슬라이드에 `visual plan`(asset type/source/layout/fallback)을 적고, 주요 슬라이드는 텍스트만으로 넘기지 않는다 [conf: high]

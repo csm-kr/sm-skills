@@ -24,6 +24,7 @@ agent/subagent 도구가 있는 환경에서는 최종 산출 전 반드시 독�
 - 덱의 목적/청중/발표 상황 요약.
 - 최종 또는 후보 PDF.
 - contact sheet 이미지.
+- `qa_media_guard.py <html> --json` output.
 - full-size PNG: 표지, 섹션 시작, 도표/SVG/타임라인, 활동/퀴즈, 마지막 페이지.
 - 이 체크리스트.
 
@@ -32,6 +33,7 @@ agent/subagent 도구가 있는 환경에서는 최종 산출 전 반드시 독�
 ```text
 You are a PT QA reviewer. Review only rendered artifacts, not source code.
 Use reference/general-pt-making-checklist.md as the grading standard.
+Use the provided qa_media_guard.py JSON output as a blocking source-level gate.
 
 Return only:
 1. pt-qa-result: pass/fail
@@ -42,23 +44,90 @@ Return only:
 6. recheck pages
 
 Rules:
+- Every P0 from qa_media_guard.py is a P0 hard fail unless the source was fixed and
+  the affected rendered page was rechecked. Crop overrides require both
+  `data-crop-ok="true"` and `data-rendered-qa="true"` or `data-fullsize-qa="true"`.
 - Any text overlap, broken Korean word/label, footer collision, cropped content,
   broken 16:9, disconnected diagram arrow, or score below 90 is fail.
+- Any text overflow, clipped text, text outside its box, awkward Korean line
+  break, table/card/checklist wrapping that looks broken, or final PDF page-order
+  mismatch is a P0 hard fail.
+- Any visible leftover text from a prior version, placeholder, deleted component,
+  old prompt, duplicated label, or stale source note is a P0 stale-content fail.
+- Any bottom content that exits the slide, touches the footer, or overlaps another
+  element is a P0. Require layout expansion, copy reduction, or structural redesign;
+  do not accept a fix that only shrinks text.
+- Prominent headings must be visually intentional. A two-line title with a very
+  short second line is at least P2 and becomes P0 if it makes the slide look broken.
+  Prefer widening the text region, reducing the image/map region, or shortening the
+  phrase so the title becomes one balanced line.
+- A rendered Korean heading or prominent sentence whose wrapped line, especially the
+  final line, has 5 Korean characters or fewer, excluding spaces and punctuation, is
+  a P0 orphan-line failure unless the break is visibly intentional. Fix by changing
+  the layout before accepting the slide: widen the text frame, reduce/reposition the
+  visual, change the grid, or shorten the phrase.
+- Closing and statement slides must keep clear title-to-subtitle spacing. If the
+  subtitle sits too close to the headline, report it as P2 or P0 depending on severity.
+- Large display headlines must keep enough distance from adjacent paragraphs. If a
+  subtitle/body line sits so close that hierarchy collapses, report P2 or P0 and fix
+  spacing/layout rather than only shrinking the headline.
+- Text over a photo, map, screenshot, illustration, or footer-over-visual area must
+  have clear rendered contrast. If the background makes text hard to read, report P0
+  and require visual repositioning, dimming, or a solid/translucent complementary
+  panel behind the text.
+- Any person/photo-led slide where a face, head, identity cue, product, food,
+  landmark, logo, or core object is cropped by the frame is a P0 hard fail.
+- Any real geography map made as an inaccurate hand-drawn/SVG outline, or any map
+  where pins/routes/regions do not align to a sourced map base, is a P0 hard fail.
+- If text does not fit, require copy reduction, slide split, or full layout
+  redesign. Do not accept a fix that only shrinks the font into a cramped layout.
 - Do not suggest broad redesign unless needed to remove a P0.
 - Do not edit files.
 ```
 
 ### 반복 루프
 
-1. Main agent renders PDF/contact sheet.
-2. QA reviewer agent returns P0/P2/score.
-3. Main agent fixes the source HTML/CSS/assets.
-4. Main agent rerenders PDF/contact sheet.
-5. Repeat QA until `pt-qa-result: pass`, no P0, and score >= 90.
-6. Report the passed QA result and HTML/PDF candidate to the user, then enter the revision phase.
-7. Export PPTX only when explicitly requested and only after pass.
+1. Main agent runs `qa_media_guard.py <html> --json`.
+2. Main agent renders PDF/contact sheet only if the media guard has no P0.
+3. QA reviewer agent receives the media guard JSON, contact sheet, selected full-size PNGs, and returns P0/P2/score.
+4. Main agent fixes the source HTML/CSS/assets.
+5. Main agent reruns media guard and rerenders PDF/contact sheet.
+6. Repeat QA until `pt-qa-result: pass`, no P0, and score >= 90.
+7. Record a scored QA ledger in build notes: `qa-score`, `p0-count`, `p2-count`,
+   `fixed-pages`, `recheck-pages`, and `regression-check`.
+8. Inspect the full new contact sheet for regressions introduced by the fix: new
+   wrapping, overflow, footer collision, contrast loss, crop damage, page-order drift,
+   or broken visual rhythm. Do not rely only on fixed-page PNGs.
+9. If `p0-count > 0`, `qa-score < 90`, or `regression-check` is fail, fix, rerender,
+   and restart at step 1.
+10. Report the passed QA result and HTML/PDF candidate to the user, then enter the revision phase.
+11. Export PPTX only when explicitly requested and only after pass.
 
 If no agent/subagent tool exists, record `qa-agent: unavailable` in build notes and run the same checklist manually. Do not skip the scoring loop.
+
+## Text Fit, Wrapping, Export, And Variation Hard Gates
+
+These rules override any softer polish language in this checklist.
+
+- P0: text overflows, is clipped, leaves its intended box, touches a border, or escapes the slide.
+- P0: Korean line breaks split a word, number/unit, proper noun, label, section number, or short phrase in a way that looks accidental.
+- P0: table, card, matrix, checklist, timeline, source note, or footer wrapping makes the slide look broken, cheap, or misaligned.
+- P0: the slide only fits by shrinking text below the delivery profile, tightening line-height, or degrading spacing. Reduce copy, split the slide, or redesign the layout completely.
+- P0: visible stale text from a previous version, placeholder, removed module, old prompt, duplicated caption, or obsolete source note remains on the rendered slide.
+- P0: lower-third content spills outside the slide, touches/overlaps the footer, or collides with neighboring text/cards.
+- P0: body, card, chart, source, or lower-third content touches, overlaps, sits underneath, or visually competes with the footer/source note/page number. Fix the source layout and rerender; do not accept a score or export while the footer collision remains.
+- P0: final PDF page order is wrong, pages are duplicated/missing, or the contact sheet was not generated from the exact final PDF.
+- P0: a revision fixes the flagged page but introduces a new rendered regression elsewhere in the deck. Full contact-sheet regression review is mandatory after each fix.
+- P0: a face, head, identity cue, product, food, landmark, logo, UI screenshot detail, or any named subject is cropped so the slide loses information.
+- P0: a real geography map is hand-drawn inaccurately, lacks a cited map base, or uses overlay pins/routes/regions that do not align with the map.
+- P0: a prominent Korean heading or sentence wraps with any wrapped line, especially the final line, of 5 Korean characters or fewer, unless it is clearly intentional display typography. Treat it as a layout failure and fix the layout first.
+- P0: text, footer, caption, or map label sits on a busy visual background without enough contrast to read comfortably in the rendered PDF.
+- P2/P0 depending on severity: a prominent heading wraps into two lines with a short orphan tail. Fix by changing layout width/image size/copy before accepting the slide.
+- P2/P0 depending on severity: closing/statement slide title and subtitle sit too close together and weaken hierarchy.
+- P2/P0 depending on severity: a very large headline and its adjacent subtitle/body are too tightly stacked. Add breathing room or redesign the layout before accepting the slide.
+- P2/P0 depending on severity: too many consecutive slides reuse the same layout. Use deliberate variation, but only if the varied layout preserves alignment, hierarchy, spacing, and text fit.
+- Required fix rule: when content does not fit, change the layout pattern before accepting cramped text. Prefer fewer cards, a larger matrix, a split layout, a diagram, or additional slides.
+- User-flagged page rule: when a user names a page number, export full-size PNGs for the PDF page ordinal and for any visible slide label/footer number that matches it. If a cover is labeled `00`, page 15 and slide label `15 / N` may be different rendered pages; inspect both and list both in `recheck-pages`.
 
 ## 리뷰 등급
 
@@ -175,9 +244,11 @@ P2 polish candidates:
 fixes applied:
 - ...
 
+media-guard-result: pass/fail
+media-guard-p0-count: __
 rerendered: yes/no
 contact-sheet-reviewed: yes/no
-full-size-pages-reviewed: cover, section openers, diagrams/SVGs, activities/quizzes, final
+full-size-pages-reviewed: cover, section openers, person/photo-led slides, real-map slides, diagrams/SVGs, activities/quizzes, final
 user-review-reported: yes/no
 pptx-export-requested: yes/no
 pptx-exported: yes/no/not-requested
