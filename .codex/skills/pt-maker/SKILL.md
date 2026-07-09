@@ -20,15 +20,15 @@ Treat deck rhythm as a hard design requirement, especially for promotional decks
 - Promotional decks should end with a clear synthesis, not another generic summary slide. The final slide should answer "why this matters now" or "what the audience should remember."
 - During QA, inspect the contact sheet for rhythm: the eye should not see five nearly identical slides in a row, and the first/last slide should feel intentionally related but not duplicated.
 
-### Spacing guardrail: never make lines feel cramped
-Treat readability spacing as a hard QA gate, not a styling preference.
+### Spacing guardrail: readable but aesthetically light
+Treat readable typography as a hard QA gate, but do not make every slide oversized.
 
-- Generated PT text must be larger than the old minimum: body and bullets should normally be `>= 32px` in the 1280x720 reveal canvas, supporting labels `>= 24px`, and source/fine-print text `>= 18px`. If content only fits by going smaller, split the slide or cut words.
-- Body text must use `line-height >= 1.62`; dense captions, source notes, and labels must use `line-height >= 1.45`.
-- Adjacent text blocks must have visible breathing room: bullet items `margin-block >= .72em`, card paragraphs `margin-block >= .55em`, and heading-to-body gaps `>= .6em`.
+- For the 1280x720 reveal canvas, use Pretendard as the default body typeface and target a lighter aesthetic scale: body and bullets normally `28-30px`, hard floor `26px`, card body `24-26px`, supporting labels `20-22px`, and source/fine-print `15-16px`. If the deck is for a large room/projector or accessibility-first delivery, raise primary body back toward `32px`.
+- Body text must use `line-height >= 1.5`, normally `1.54-1.62`; dense captions, source notes, and labels must use `line-height >= 1.38`.
+- Adjacent text blocks must have visible breathing room: bullet items `margin-block >= .58em`, card paragraphs `margin-block >= .46em`, and heading-to-body gaps `>= .52em`.
 - If a slide feels crowded, reduce words first, split the idea into another slide second, and only then reduce font size. Do not solve crowding by tightening line-height.
 - Small text is allowed only when it still looks airy: use wider line-height, shorter lines, and more surrounding whitespace.
-- During visual QA, reject any slide where Korean lines visually touch, where two text blocks read as one paragraph, or where a label sits too close to an icon/number.
+- During visual QA, reject any slide where Korean lines visually touch, where two text blocks read as one paragraph, where a label sits too close to an icon/number, or where body text looks heavy and poster-like because everything was forced to 32px+.
 
 ### Composition balance guardrail: do not dump content at the bottom
 Treat layout balance as a hard QA gate. A slide can have enough whitespace and still fail if the visual weight is pushed to the bottom edge or one side.
@@ -64,10 +64,10 @@ Recommended CSS/layout defaults for paged decks:
 Recommended CSS defaults for new decks:
 
 ```css
-.reveal { line-height: 1.62; }
-.reveal p { line-height: 1.68; margin: .55em 0; }
-.reveal li { line-height: 1.65; margin: .72em 0; }
-.reveal small, .source, .caption { line-height: 1.48; }
+.reveal { font-size: 30px; line-height: 1.56; }
+.reveal p { line-height: 1.6; margin: .5em 0; }
+.reveal li { line-height: 1.55; margin: .58em 0; }
+.reveal small, .source, .caption { line-height: 1.42; }
 ```
 
 ### Alignment and readability evaluation guardrail
@@ -76,7 +76,7 @@ Before final delivery, read and apply [reference/alignment-eval-rubric.md](refer
 - Treat visual alignment, readable font size, and finished polish as hard QA gates.
 - Use a dedicated alignment-review agent when the environment provides subagents and the user permits agent review. Give it the contact sheet plus full-size PNGs of the cover, final slide, and any diagram/table/checklist slide. It should review only alignment, visibility, and polish unless explicitly assigned a disjoint write scope.
 - If no subagent is available, run the same rubric manually and record that in build notes.
-- Use the web-backed readability baseline from the rubric: H1 normally 48-72pt, H2 never below 32pt, primary body and bullets never below 24pt, and card body text should normally be 22-26pt.
+- Use the web-backed readability baseline from the rubric, translated through the active delivery profile: normal HTML decks use body/bullets `28-30px` with `26px` hard floor; large-room/projector decks use the stricter PowerPoint-style `24pt` body minimum, approximately `32px` in CSS.
 - Reject and rebuild any slide where numbered pins, checklist dots, arrow endpoints, card grids, or labels are visibly off their intended anchors.
 - Score the deck with the 100-point rubric. If the score is below 90/100 or any hard fail appears, fix the source, rerender, regenerate the contact sheet, and repeat review before delivery.
 
@@ -251,7 +251,7 @@ API 키가 든 `.env`는 **읽거나 출력하지 않는다**. `gen_image.py`는
 - 콘텐츠 슬라이드가 두 장 이상 연속 텍스트만 있음 → ❌. 설명형이면 SVG/차트/타임라인으로, 무드형이면 승인받은 생성 이미지나 실사진으로 보강한다.
 - 모든 콘텐츠 슬라이드가 같은 레이아웃(불릿 좌·비주얼 우) → ❌ 단조롭다. 한 덱에서 카드 그리드·미러(비주얼 좌)·허브·가로 타임라인·중앙 statement·이미지 주연 등 3~4종 이상 섞는다(craft.md §2-11).
 - 줄간격이 좁아 빽빽 / 한글 라벨(SVG·kicker)을 모노폰트로 / 정확한 연도·숫자·고유명사를 손글씨 폰트(Nanum Pen)로 → ❌ 가독성. 본문 `line-height ≥ 1.5`, 한글은 Pretendard, 손글씨는 가벼운 메모·감탄에만(사실 정보는 정자체).
-- 본문·불릿을 32px보다 작게 만들거나 라벨을 24px보다 작게 욱여넣기 → ❌. 글자 축소 대신 문장을 줄이거나 슬라이드를 나눈다. 출처/fine-print도 18px 밑으로 내려가지 않는다.
+- 본문·불릿을 무조건 32px 이상으로 키워 둔탁하게 만들기 → ❌. 일반 HTML 덱은 Pretendard 기준 본문 28-30px, hard floor 26px가 기본. 라벨은 20-22px, 출처/fine-print는 15-16px까지 허용하되, 작아 보이면 문장을 줄이거나 슬라이드를 나눈다. 큰 발표장/프로젝터용이면 32px로 올린다.
 - 카드 썸네일 사진을 짧은 고정높이 `object-fit:cover`로 → ❌ 피사체 잘림(음식·인물). `aspect-ratio:3/2` 박스 + `object-fit:contain`(흰 배경)으로 전체 보이게. 큰 히어로는 cover OK.
 - 원형 번호·아이콘 뱃지가 옆 라벨보다 커서 아랫줄 침범 → ❌. 라벨 크기에 맞춰 작게(≈1.2~1.3em)·`margin-bottom` 확보, 빌드 후 스샷으로 수직 겹침 점검.
 - PDF를 `deck.pdf`로 저장 → ❌. 주제 이름(`"<주제>.pdf"`)으로.

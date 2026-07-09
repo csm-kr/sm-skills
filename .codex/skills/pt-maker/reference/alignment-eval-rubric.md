@@ -22,13 +22,16 @@ Deck rule derived from those sources:
 
 - Title/H1: normally 48-72 pt.
 - Section/H2: normally 36-52 pt, never below 32 pt.
-- Body and main bullets: normally 24-30 pt, never below 24 pt.
-- Card body text: target 22-26 pt; use 20 pt only for short supporting labels, never for
-  primary reading text.
+- For large-room/projector or strict accessibility delivery: body and main bullets
+  normally 24-30 pt, never below 24 pt.
+- For normal 1280x720 reveal HTML decks: body and main bullets normally 28-30 CSS px,
+  hard floor 26 CSS px, card body 24-26 CSS px. This is the user's aesthetic default
+  because forcing all body text to 32px makes slides look heavy.
+- Use 20-22 CSS px only for short supporting labels, never for primary reading text.
 - Source notes/fine print: avoid when possible; if used, keep 11-14 pt and visually
-  separate from primary content.
+  separate from primary content, or 15-16 CSS px in normal HTML decks.
 - Korean text needs more air than English: line-height >= 1.45 for headings/labels and
-  >= 1.62 for body text.
+  >= 1.5 for body text.
 
 ## Required Alignment Agent Pass
 
@@ -58,13 +61,14 @@ Failing any hard gate below requires another render before delivery.
 
 ### A. Readability And Scale - 25 pts
 
-- 10 pts: H1/H2/body sizes meet the minimums above.
+- 10 pts: H1/H2/body sizes meet the active delivery profile above.
 - 5 pts: Korean body lines have enough line-height and do not feel cramped.
 - 5 pts: source notes and labels are legible without competing with main content.
 - 5 pts: no important text is visually smaller than nearby decorative numbers/icons.
 
-Hard fail: body text below 24 pt for primary content, or any Korean body paragraph
-looks cramped at full-slide view.
+Hard fail: body text below the active delivery profile floor, or any Korean body
+paragraph looks cramped at full-slide view. Also fail if a normal HTML deck looks
+visually heavy because ordinary body text was forced to 32px+ everywhere.
 
 ### B. Grid And Edge Alignment - 20 pts
 
@@ -117,4 +121,3 @@ When the alignment score is below 90/100, or any hard fail is found:
 3. Regenerate contact sheet and selected page PNGs.
 4. Run the alignment reviewer again or repeat manual review.
 5. Deliver only after no hard fails remain.
-
