@@ -188,6 +188,10 @@ Use the 100-point rubric as an iteration gate, not just a final note.
    or broken visual rhythm.
 6. Stop only when `p0-count = 0`, `qa-score >= 90`, `qa_score_gate = pass`, and
    `regression-check = pass`.
+7. For final delivery after the user has reviewed the candidate, build
+   `user_review_ledger.json` and run
+   `qa_final_review_gate.py <html> <qa_ledger.json> <user_review_ledger.json>`.
+   Final delivery is valid only when this final review gate passes.
 
 ### E. Visual Rhythm And Polish - 10 pts
 
@@ -216,6 +220,9 @@ the claimed fix.
 
 Hard fail: `qa_score_gate.py` was not run, or it failed, before reporting a final
 rubric score of 90/100 or higher.
+
+Hard fail: `qa_final_review_gate.py` was not run, or it failed, before reporting
+the deck as final after user review.
 
 ## Rebuild Rule
 

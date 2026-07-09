@@ -15,7 +15,10 @@
 9. `qa_score_gate.py`가 pass하기 전에는 `pt-qa-result: pass`, 90점 이상 점수, 최종 후보 보고를 금지한다.
 10. QA가 통과하면 먼저 QA 결과와 HTML/PDF 후보를 사용자에게 보고하고, 그 다음 수정 요청 단계로 들어간다.
 11. 사용자가 수정 요청을 주면 새 버전으로 처리하고, 수정 → 재렌더 → QA 반복 → 재보고한다.
-12. PPTX는 기본 산출물이 아니다. 사용자가 명시 요청했거나 합의된 산출물에 PPTX가 포함된 경우에만, PDF/contact sheet 통과 후 export한다.
+12. 사용자 최종 리뷰가 끝나면 `user_review_ledger.json`을 작성하고 `qa_final_review_gate.py <html> <qa_ledger.json> <user_review_ledger.json>`를 실행한다.
+13. `qa_final_review_gate.py`가 pass하기 전에는 최종 납품, final 보고, 사용자 리뷰 기반 taste-profile 업데이트 완료 보고를 금지한다.
+14. 최종 사용자 리뷰에서 재사용 가능한 취향 학습이 나오면 diff로 제안하고, 사용자가 확인한 경우에만 `taste-profile.md` 또는 `dark-taste-profile.md`를 업데이트한다. 업데이트/미업데이트 결정은 `user_review_ledger.json`에 남긴다.
+15. PPTX는 기본 산출물이 아니다. 사용자가 명시 요청했거나 합의된 산출물에 PPTX가 포함된 경우에만, PDF/contact sheet 통과 후 export한다.
 
 ## Agent 검수 시스템
 
@@ -113,7 +116,9 @@ Rules:
 10. If `p0-count > 0`, `qa-score < 90`, `qa_score_gate` is fail, or `regression-check` is fail, fix, rerender,
     and restart at step 1.
 11. Report the passed QA result and HTML/PDF candidate to the user, then enter the revision phase.
-12. Export PPTX only when explicitly requested and only after pass.
+12. After user review is accepted or requested changes are resolved, write `user_review_ledger.json` and run `qa_final_review_gate.py <html> <qa_ledger.json> <user_review_ledger.json> --json`.
+13. Repeat the user-review/update/recheck loop until `qa_final_review_gate: pass`.
+14. Export PPTX only when explicitly requested and only after pass.
 
 If no agent/subagent tool exists, record `qa-agent: unavailable` in build notes and run the same checklist manually. Do not skip the scoring loop.
 
@@ -228,6 +233,8 @@ These rules override any softer polish language in this checklist.
 - 표지, 섹션 시작, 도표, 활동/퀴즈, 마지막 페이지를 큰 이미지로 확인했는가.
 - `qa_ledger.json`을 작성하고 `qa_score_gate.py`를 통과했는가.
 - QA 통과 후 HTML/PDF 후보와 QA 결과를 사용자에게 먼저 보고했는가.
+- 사용자 최종 리뷰 후 `user_review_ledger.json`을 작성하고 `qa_final_review_gate.py`를 통과했는가.
+- 사용자 리뷰 기반 취향 학습을 diff로 제안하고, 확인된 경우에만 `taste-profile.md`/`dark-taste-profile.md`를 업데이트했는가.
 - PPTX가 기본 산출물로 자동 생성되지 않았는가.
 - PPTX가 필요하다면 사용자의 명시 요청 또는 합의가 있고, PDF가 통과한 뒤에만 export했는가.
 
@@ -250,6 +257,8 @@ These rules override any softer polish language in this checklist.
 - 마지막 페이지의 제목/이미지/마무리 문구가 서로 침범함.
 - 전체 점수 90점 미만.
 - `qa_score_gate.py` 미통과.
+- `qa_final_review_gate.py` 미통과.
+- 사용자 리뷰 기반 profile 업데이트 결정을 기록하지 않음.
 
 ## 리뷰 기록 템플릿
 
@@ -270,11 +279,15 @@ media-guard-result: pass/fail
 media-guard-p0-count: __
 score-gate-result: pass/fail
 score-gate-error-count: __
+final-review-gate-result: pass/fail
+final-review-gate-error-count: __
 rerendered: yes/no
 contact-sheet-reviewed: yes/no
 full-size-pages-reviewed: cover, section openers, person/photo-led slides, real-map slides, diagrams/SVGs, activities/quizzes, final
 diagram-checks: connector_endpoints, labels_clear, no_collisions, layout_alignment
 user-review-reported: yes/no
+user-review-status: accepted/no_changes/changes_requested_resolved
+profile-update-decision: accepted/declined/not_applicable
 pptx-export-requested: yes/no
 pptx-exported: yes/no/not-requested
 ```

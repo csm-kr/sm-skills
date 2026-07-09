@@ -138,6 +138,10 @@ Before final delivery, read and apply [reference/general-pt-making-checklist.md]
 - Render PDF and contact sheet before claiming the deck is done.
 - After rendering the exact final PDF/contact sheet, create a final `qa_ledger.json` and run `python scripts/qa_score_gate.py <html> <qa_ledger.json>`. A deck may not report `pt-qa-result: pass`, a rubric score `>= 90`, or a final delivery candidate unless this score gate passes.
 - `qa_score_gate.py` is the checklist enforcement layer: it requires media guard pass, score >= 90, P0=0, rendered PDF evidence, contact-sheet review, full-size PNG evidence, regression review, all required checklist keys marked pass, and diagram-specific checks when diagrams exist.
+- After `qa_score_gate.py` passes, show the HTML/PDF candidate and QA result to the user for final review. The deck is still only a candidate at this point.
+- After the user's review, create `user_review_ledger.json` and run `python scripts/qa_final_review_gate.py <html> <qa_ledger.json> <user_review_ledger.json>`. A deck may not be called final, delivered as final, or used to update pt-maker taste guidance unless this final review gate passes.
+- `qa_final_review_gate.py` enforces that the candidate was reported to the user, user feedback was accepted or resolved, the deck was rechecked after user review, `qa_score_gate.py` was rerun after the review state became final, and the taste-profile update decision was reviewed with the user.
+- If user review produces reusable taste guidance, propose a diff to `taste-profile.md` and/or `dark-taste-profile.md`; update those files only after explicit user confirmation, increment the profile version, and record the decision in `user_review_ledger.json`. If there is no reusable learning or the user declines, record `not_applicable` or `declined` with a reason.
 - Generate the contact sheet from the exact final PDF artifact, not from cached browser screenshots, stale PNGs, or an earlier export. If page order is uncertain, generate a numbered PDF contact sheet and verify page 1..N against the intended outline.
 - Inspect full-size PNGs for the cover, section openers, person/photo-led slides, real-map slides, dense diagrams/SVGs/timelines, activity/quiz slides, and final slide.
 - Every custom SVG/CSS/HTML diagram, flow, timeline, network, or triad must be included in full-size rendered QA. Add `data-fullsize-qa="true"` and `data-rendered-qa="true"` to the diagram container only after inspecting the full-size rendered PNG/PDF page. Missing attributes are a blocking source-level P0.
@@ -151,7 +155,7 @@ Before final delivery, read and apply [reference/general-pt-making-checklist.md]
 - Treat any P0, export/aspect-ratio failure, or score below 90/100 as a blocking failure. Fix source HTML/CSS/assets, rerender PDF/contact sheet, and run the QA checklist again.
 - Use a scored QA loop for every revision: score the rendered deck on the 100-point rubric, record `qa-score`, `p0-count`, `p2-count`, `fixed-pages`, and `recheck-pages` in build notes, then run `qa_score_gate.py`. Iterate until `p0-count = 0`, `qa-score >= 90`, and `qa_score_gate: pass`. If a user flags specific pages, those pages must appear in `recheck-pages` after the fix.
 - Every QA loop must include regression inspection: compare the new contact sheet against the prior accepted version or against the intended outline, then record `regression-check: pass/fail` and any newly affected pages. A failed regression check is blocking even if the originally flagged pages look fixed.
-- After internal QA passes, report the QA result and provide the HTML/PDF candidate for user review before entering revision work. Treat user-requested changes as a new version and rerun the QA loop before reporting again.
+- After internal QA passes, report the QA result and provide the HTML/PDF candidate for user review before entering revision work. Treat user-requested changes as a new version and rerun the QA loop before reporting again. Before final delivery, run `qa_final_review_gate.py`; if it fails, continue the review/update/recheck loop rather than reporting final.
 - Do not export PPTX by default. Export PPTX only when the user explicitly asks for PPTX or the agreed output format requires it, and only after PDF/contact sheet QA passes with no P0 and score >= 90/100.
 
 ### Image fit rubric and generation trigger
@@ -307,6 +311,8 @@ python scripts/export_pdf_shots.py "output/NN_slug_date/<주제>v<N>.html" "outp
 python scripts/verify_pdf.py "output/NN_slug_date/<주제>v<N>.pdf"                                              # bleed 검증(콘택트 시트) → Read로 확인
 # 2) 렌더 QA 후 점수 게이트 — qa_ledger.json 작성 후 통과해야 pass/90점 이상 보고 가능.
 python scripts/qa_score_gate.py "output/NN_slug_date/<주제>v<N>.html" "output/NN_slug_date/qa_ledger.json"
+# 3) 사용자 최종 리뷰 후 최종 게이트. user_review_ledger.json 작성 후 통과해야 final delivery 가능.
+python scripts/qa_final_review_gate.py "output/NN_slug_date/<주제>v<N>.html" "output/NN_slug_date/qa_ledger.json" "output/NN_slug_date/user_review_ledger.json"
 
 # 선택) 사용자가 PPTX를 명시 요청한 경우에만, PDF/contact sheet QA 통과 후 생성.
 python scripts/export_pptx.py "output/NN_slug_date/<주제>v<N>.html" "output/NN_slug_date/<주제>v<N>.pptx"      # 정렬 보존용 이미지 기반 PPTX
@@ -351,6 +357,7 @@ API 키가 든 `.env`는 **읽거나 출력하지 않는다**. `gen_image.py`는
 - `.pdf` 줄간격이 `.html`보다 좁다 → reveal print-pdf의 한계. `export_pdf_shots.py`로 HTML 스샷을 합쳐 1:1로 만든다.
 - PPTX를 기본 산출물로 자동 생성하거나 편집 가능한 도형/텍스트로 바로 만들려고 함 → ❌. 현재 PPTX export는 정렬 보존용 이미지 기반 옵션이다. 사용자가 명시 요청한 경우에만 PDF QA 통과 후 생성한다. 편집 가능성이 필요하면 별도 네이티브 PPTX 빌드로 명시하고 QA 기준을 따로 잡는다.
 - 최종 점수나 `pt-qa-result: pass`를 말하면서 `qa_score_gate.py`를 통과하지 않음 → ❌. 렌더 QA ledger와 score gate pass 없이는 90점 이상/통과 보고 금지.
+- 최종 납품이라고 말하면서 사용자 최종 리뷰와 `qa_final_review_gate.py`를 통과하지 않음 → ❌. score gate 통과본은 후보일 뿐이고, final은 사용자 리뷰 ledger와 final review gate pass 이후에만 가능.
 - SVG/CSS 도식 라벨이 도형 밖으로 넘침/도형과 겹쳐 안 읽힘 → ❌. 라벨은 도형 **중앙**(타원이면 `cx,cy`에 `text-anchor:middle`)에 넣거나, 도형과 **충분히 띄운다**. 선/화살표는 대상 중심 또는 경계에 명확히 닿아야 하고, 끊긴 선·떠 있는 선·텍스트를 가로지르는 선은 P0. 도식 컨테이너에는 full-size 렌더 검수 후에만 `data-fullsize-qa="true"`와 `data-rendered-qa="true"`를 붙인다.
 - kicker 번호가 슬라이드마다 다른 위치(가운데/좌측 등)에 떠 통일성이 없음 → ❌. kicker를 `.s-head`(absolute 좌상단 고정)로 감싸 **모든 슬라이드 같은 자리**에. (템플릿에 반영됨)
 - 브랜드 색·폰트 변경 → ❌. 토큰 고정.
@@ -364,6 +371,7 @@ API 키가 든 `.env`는 **읽거나 출력하지 않는다**. `gen_image.py`는
 - PDF 각 페이지에 인접 슬라이드가 비침/잘림 → ❌. `Reveal.initialize`에 `center:false` + `pdfPageHeightOffset:0` 필수, `verify_pdf.py`로 캡처 검증. 장수 늘리면 누적되어 심해지니 매번 재검증.
 - 인테이크에서 참고자료 여부를 확인하지 않거나, 질문을 여러 개 한꺼번에 던지거나, 필수 4항목(메시지·청중·근거·CTA)과 발표 상황·분위기·이미지 레벨을 안 채우고 슬라이드부터 만들기 → ❌. intake.md 순서대로 먼저.
 - 취향을 사용자 확인 없이 조용히 taste-profile에 기록 → ❌. 항상 diff 제안 후 확인.
+- 사용자 최종 리뷰에서 나온 취향 학습을 `taste-profile.md`/`dark-taste-profile.md`에 반영할지 묻지 않거나, 반영/미반영 결정을 `user_review_ledger.json`에 남기지 않음 → ❌.
 - 덱 산출물(html·pdf·이미지)을 루트나 공용 `out/`에 흩뿌리기 → ❌. `output/NN_slug_date/`(이미지는 그 안 `assets/`)로.
 
 ## Cover Background QA
