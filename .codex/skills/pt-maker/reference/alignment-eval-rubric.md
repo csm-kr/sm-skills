@@ -106,6 +106,16 @@ was supposedly deleted.
 
 Hard fail: map pins, numbered steps, or checklist dots visibly miss their targets.
 
+Hard fail: any custom SVG/CSS/HTML diagram, flow chart, timeline, network, or triad
+has not been inspected as a full-size rendered PNG/PDF page. The diagram container
+must carry both `data-fullsize-qa="true"` and `data-rendered-qa="true"` only after
+inspection. Missing proof blocks scoring.
+
+Hard fail: a diagram connector, arrow, or line endpoint floats beside its intended
+target, dangles without a target, cuts through text, collides with cards, or creates
+an ambiguous relationship. Labels must sit inside their shapes or be clearly attached
+by proximity and alignment.
+
 Hard fail: a real geography map is an inaccurate self-drawn outline, uses invented
 country/city/region shapes, lacks a cited map base, or places pins/routes/regions
 without matching the underlying map. Use a web/official/public map base and draw the
@@ -164,16 +174,20 @@ Use the 100-point rubric as an iteration gate, not just a final note.
 
 1. Score the rendered PDF/contact sheet and record `qa-score`, `p0-count`, `p2-count`,
    `fixed-pages`, `recheck-pages`, and `regression-check` in build notes.
-2. Any P0 or `qa-score < 90` blocks delivery.
-3. Fix the source, rerender the PDF/contact sheet, regenerate full-size PNGs for all
+2. Build `qa_ledger.json` from the rendered QA evidence and run
+   `qa_score_gate.py <html> <qa_ledger.json>`. A passing score is valid only when
+   the score gate passes.
+3. Any P0, `qa-score < 90`, or `qa_score_gate: fail` blocks delivery.
+4. Fix the source, rerender the PDF/contact sheet, regenerate full-size PNGs for all
    user-flagged pages, and score again.
    If a user names a page number, inspect both the PDF page ordinal and any visible
    slide/footer label with that same number, because cover slides labeled `00` can
    shift the two references by one page.
-4. Inspect the entire new contact sheet for regressions introduced by the fix: new
+5. Inspect the entire new contact sheet for regressions introduced by the fix: new
    wrapping, overflow, contrast loss, crop damage, footer collision, page-order drift,
    or broken visual rhythm.
-5. Stop only when `p0-count = 0`, `qa-score >= 90`, and `regression-check = pass`.
+6. Stop only when `p0-count = 0`, `qa-score >= 90`, `qa_score_gate = pass`, and
+   `regression-check = pass`.
 
 ### E. Visual Rhythm And Polish - 10 pts
 
@@ -199,6 +213,9 @@ numbered PDF contact sheet for final verification.
 
 Hard fail: user-flagged pages were not exported as full-size PNGs and rechecked after
 the claimed fix.
+
+Hard fail: `qa_score_gate.py` was not run, or it failed, before reporting a final
+rubric score of 90/100 or higher.
 
 ## Rebuild Rule
 

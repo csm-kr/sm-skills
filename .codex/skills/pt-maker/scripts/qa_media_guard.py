@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """pt-maker media QA guard.
 
-Fails fast on two recurring deck problems:
+Fails fast on recurring deck problems:
 1) important web images cropped by object-fit: cover
 2) real geography maps drawn as invented inline SVG outlines
+3) custom SVG/CSS diagrams shipped without full-size rendered QA proof
 
 Usage:
   python scripts/qa_media_guard.py output/NN_slug_date/deck.html
@@ -115,6 +116,31 @@ MAP_WORDS = {
     "핀",
 }
 
+DIAGRAM_CLASS_EXACT = {
+    "class-flow",
+    "concept-diagram",
+    "concept-map",
+    "diagram",
+    "fitness-diagram",
+    "flow",
+    "flowchart",
+    "mini-diagram",
+    "network",
+    "schematic-map",
+    "timeline",
+    "triad",
+}
+
+DIAGRAM_CLASS_FRAGMENTS = {
+    "diagram",
+    "flowchart",
+    "network",
+    "timeline",
+    "triad",
+}
+
+DIAGRAM_SHAPE_RE = re.compile(r"<(?:circle|ellipse|line|path|polygon|polyline|rect)\b", re.I)
+
 
 @dataclass
 class Finding:
@@ -132,6 +158,11 @@ def attrs(tag: str) -> dict[str, str]:
 def class_attr(tag: str) -> str:
     m = CLASS_RE.search(tag)
     return m.group(2) if m else ""
+
+
+def opening_tag(markup: str) -> str:
+    m = re.match(r"<[a-z0-9]+[^>]*>", markup, re.I | re.S)
+    return m.group(0) if m else markup
 
 
 def classes_in(text: str) -> set[str]:
@@ -230,6 +261,50 @@ def crop_override_status(tag: str, context: str) -> str:
     return "verified" if has_rendered_proof else "unverified"
 
 
+def tag_has_true_attr(tag: str, name: str) -> bool:
+    return attrs(opening_tag(tag)).get(name, "").lower() == "true"
+
+
+def has_required_diagram_qa(markup: str) -> bool:
+    return tag_has_true_attr(markup, "data-fullsize-qa") and tag_has_true_attr(markup, "data-rendered-qa")
+
+
+def class_tokens_indicate_diagram(classes: set[str]) -> bool:
+    for cls in classes:
+        if cls in DIAGRAM_CLASS_EXACT:
+            return True
+        if any(fragment in cls for fragment in DIAGRAM_CLASS_FRAGMENTS):
+            return True
+    return False
+
+
+def svg_is_likely_custom_diagram(svg: str) -> bool:
+    tag = opening_tag(svg)
+    a = attrs(tag)
+    classes = set(class_attr(tag).lower().split())
+    if a.get("aria-hidden", "").lower() == "true" or a.get("data-decorative", "").lower() == "true":
+        return False
+    if class_tokens_indicate_diagram(classes):
+        return True
+    lower = svg.lower()
+    shape_count = len(DIAGRAM_SHAPE_RE.findall(svg))
+    has_text = "<text" in lower
+    return has_text and shape_count >= 2
+
+
+def tag_is_css_diagram_container(tag: str) -> bool:
+    tag_name = re.match(r"<([a-z0-9]+)", tag, re.I)
+    if not tag_name:
+        return False
+    if tag_name.group(1).lower() == "svg":
+        return False
+    a = attrs(tag)
+    classes = set(class_attr(tag).lower().split())
+    if a.get("aria-hidden", "").lower() == "true" or a.get("data-decorative", "").lower() == "true":
+        return False
+    return class_tokens_indicate_diagram(classes)
+
+
 def selector_applies_to_img(selector: str, tag: str, context: str) -> bool:
     # Conservative: exact CSS matching is out of scope; this guard intentionally
     # treats class-name overlap and broad img selectors as risky.
@@ -324,6 +399,46 @@ def check_background_cover_selectors(background_selectors: list[str]) -> list[Fi
                 "Do not use background-size: cover for people/products/maps unless the class is cover-ok/crop-ok and full-size rendered QA proves the important subject is intact.",
             )
         )
+    return findings
+
+
+def check_diagram_rendered_qa(html: str) -> list[Finding]:
+    findings: list[Finding] = []
+    for idx, section in enumerate(SECTION_RE.findall(html), start=1):
+        slide = section_number(section, idx)
+
+        for svg in SVG_RE.findall(section):
+            if not svg_is_likely_custom_diagram(svg):
+                continue
+            if has_required_diagram_qa(svg):
+                continue
+            tag = opening_tag(svg)
+            label = attrs(tag).get("aria-label") or class_attr(tag) or "inline SVG diagram"
+            findings.append(
+                Finding(
+                    "P0",
+                    "diagram-missing-fullsize-rendered-qa",
+                    slide,
+                    f"Custom SVG diagram lacks required full-size rendered QA proof: {label}",
+                    "Render the slide as a full-size PNG/PDF page, inspect connector/arrow endpoints, labels, and collisions, then add both data-fullsize-qa=\"true\" and data-rendered-qa=\"true\" to the SVG/container.",
+                )
+            )
+
+        for tag in TAG_RE.findall(section):
+            if not tag_is_css_diagram_container(tag):
+                continue
+            if has_required_diagram_qa(tag):
+                continue
+            label = class_attr(tag) or "CSS diagram container"
+            findings.append(
+                Finding(
+                    "P0",
+                    "diagram-missing-fullsize-rendered-qa",
+                    slide,
+                    f"Custom CSS/HTML diagram lacks required full-size rendered QA proof: {label}",
+                    "Render the slide as a full-size PNG/PDF page, inspect connector/arrow endpoints, labels, and collisions, then add both data-fullsize-qa=\"true\" and data-rendered-qa=\"true\" to the diagram container.",
+                )
+            )
     return findings
 
 
@@ -457,6 +572,35 @@ def check_maps(html: str, html_path: Path) -> list[Finding]:
     return findings
 
 
+def collect_findings(html_path: Path) -> list[Finding]:
+    if not html_path.is_file():
+        raise FileNotFoundError(html_path)
+    html = html_path.read_text(encoding="utf-8", errors="ignore")
+    cover_selectors = css_cover_selectors(html)
+    background_selectors = css_background_cover_selectors(html)
+    findings: list[Finding] = []
+    findings.extend(check_cover_selectors(cover_selectors))
+    findings.extend(check_background_cover_selectors(background_selectors))
+    findings.extend(check_cover_images(html, cover_selectors))
+    findings.extend(check_diagram_rendered_qa(html))
+    findings.extend(check_maps(html, html_path))
+    return findings
+
+
+def result_from_findings(findings: list[Finding]) -> dict[str, object]:
+    p0 = [f for f in findings if f.severity == "P0"]
+    return {
+        "qa_media_guard": "fail" if p0 else "pass",
+        "p0_count": len(p0),
+        "finding_count": len(findings),
+        "findings": [asdict(f) for f in findings],
+    }
+
+
+def run_checks(html_path: Path) -> dict[str, object]:
+    return result_from_findings(collect_findings(html_path))
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("html")
@@ -464,25 +608,14 @@ def main() -> int:
     args = ap.parse_args()
 
     html_path = Path(args.html)
-    if not html_path.is_file():
+    try:
+        findings = collect_findings(html_path)
+    except FileNotFoundError:
         sys.stderr.write(f"ERROR: file not found: {html_path}\n")
         return 2
-    html = html_path.read_text(encoding="utf-8", errors="ignore")
-    cover_selectors = css_cover_selectors(html)
-    background_selectors = css_background_cover_selectors(html)
-    findings = []
-    findings.extend(check_cover_selectors(cover_selectors))
-    findings.extend(check_background_cover_selectors(background_selectors))
-    findings.extend(check_cover_images(html, cover_selectors))
-    findings.extend(check_maps(html, html_path))
 
     p0 = [f for f in findings if f.severity == "P0"]
-    result = {
-        "qa_media_guard": "fail" if p0 else "pass",
-        "p0_count": len(p0),
-        "finding_count": len(findings),
-        "findings": [asdict(f) for f in findings],
-    }
+    result = result_from_findings(findings)
 
     if args.json:
         print(json.dumps(result, ensure_ascii=False, indent=2))

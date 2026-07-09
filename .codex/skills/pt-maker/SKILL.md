@@ -136,8 +136,11 @@ Before final delivery, read and apply [reference/general-pt-making-checklist.md]
 - Run `python scripts/qa_media_guard.py <final-or-candidate.html>` before PDF export and after every meaningful HTML/CSS/assets edit. Any `P0` from this script blocks export/delivery until fixed. `export_pdf.py` and `export_pdf_shots.py` also run this guard automatically and must stop on P0.
 - Use `python scripts/qa_media_guard.py <html> --json` when passing results to a QA reviewer agent. The agent must treat every script `P0` as a real P0 and then verify the affected pages in rendered PDF/PNG.
 - Render PDF and contact sheet before claiming the deck is done.
+- After rendering the exact final PDF/contact sheet, create a final `qa_ledger.json` and run `python scripts/qa_score_gate.py <html> <qa_ledger.json>`. A deck may not report `pt-qa-result: pass`, a rubric score `>= 90`, or a final delivery candidate unless this score gate passes.
+- `qa_score_gate.py` is the checklist enforcement layer: it requires media guard pass, score >= 90, P0=0, rendered PDF evidence, contact-sheet review, full-size PNG evidence, regression review, all required checklist keys marked pass, and diagram-specific checks when diagrams exist.
 - Generate the contact sheet from the exact final PDF artifact, not from cached browser screenshots, stale PNGs, or an earlier export. If page order is uncertain, generate a numbered PDF contact sheet and verify page 1..N against the intended outline.
 - Inspect full-size PNGs for the cover, section openers, person/photo-led slides, real-map slides, dense diagrams/SVGs/timelines, activity/quiz slides, and final slide.
+- Every custom SVG/CSS/HTML diagram, flow, timeline, network, or triad must be included in full-size rendered QA. Add `data-fullsize-qa="true"` and `data-rendered-qa="true"` to the diagram container only after inspecting the full-size rendered PNG/PDF page. Missing attributes are a blocking source-level P0.
 - When the user flags a page number or footer collision, export full-size PNGs for both the PDF page ordinal and any audience-facing slide label with the same number, then inspect both before scoring. Example: if the user says page 15 and the deck has a cover labeled 00, recheck PDF page 15 and the slide whose footer says `15 / N`.
 - Treat any body/card/chart/source text that touches, overlaps, sits underneath, or visually competes with the footer, source note, or page number as `P0 footer collision`. The deck cannot be exported or delivered until the source layout is changed, the PDF/contact sheet is regenerated from that exact source, and the flagged page PNGs are rechecked.
 - If the environment provides agent/subagent tools, always run a dedicated QA reviewer agent before delivery. Give it the contact sheet, selected full-size PNGs, and the checklist. The reviewer must return only P0 hard fails, P2 polish candidates, 100-point score, required fixes, and recheck pages.
@@ -146,7 +149,7 @@ Before final delivery, read and apply [reference/general-pt-making-checklist.md]
 - QA is an action loop. If rendered text is too large, clipped, outside a box, badly wrapped, or visually broken, immediately edit the source deck and rerender; do not stop at diagnosis.
 - Treat wrong final PDF page order, duplicated/missing pages, stale contact sheets, and HTML/PDF mismatches as P0 export failures. Fix the export path and rerender before delivery.
 - Treat any P0, export/aspect-ratio failure, or score below 90/100 as a blocking failure. Fix source HTML/CSS/assets, rerender PDF/contact sheet, and run the QA checklist again.
-- Use a scored QA loop for every revision: score the rendered deck on the 100-point rubric, record `qa-score`, `p0-count`, `p2-count`, `fixed-pages`, and `recheck-pages` in build notes, then iterate until `p0-count = 0` and `qa-score >= 90`. If a user flags specific pages, those pages must appear in `recheck-pages` after the fix.
+- Use a scored QA loop for every revision: score the rendered deck on the 100-point rubric, record `qa-score`, `p0-count`, `p2-count`, `fixed-pages`, and `recheck-pages` in build notes, then run `qa_score_gate.py`. Iterate until `p0-count = 0`, `qa-score >= 90`, and `qa_score_gate: pass`. If a user flags specific pages, those pages must appear in `recheck-pages` after the fix.
 - Every QA loop must include regression inspection: compare the new contact sheet against the prior accepted version or against the intended outline, then record `regression-check: pass/fail` and any newly affected pages. A failed regression check is blocking even if the originally flagged pages look fixed.
 - After internal QA passes, report the QA result and provide the HTML/PDF candidate for user review before entering revision work. Treat user-requested changes as a new version and rerun the QA loop before reporting again.
 - Do not export PPTX by default. Export PPTX only when the user explicitly asks for PPTX or the agreed output format requires it, and only after PDF/contact sheet QA passes with no P0 and score >= 90/100.
@@ -302,6 +305,8 @@ python scripts/qa_media_guard.py "output/NN_slug_date/<주제>v<N>.html"        
 python scripts/export_pdf.py "output/NN_slug_date/<주제>v<N>.html" "output/NN_slug_date/<주제>v<N>.pdf"        # 기본: print-pdf
 python scripts/export_pdf_shots.py "output/NN_slug_date/<주제>v<N>.html" "output/NN_slug_date/<주제>v<N>.pdf"   # 화면과 1:1(스샷 합치기)
 python scripts/verify_pdf.py "output/NN_slug_date/<주제>v<N>.pdf"                                              # bleed 검증(콘택트 시트) → Read로 확인
+# 2) 렌더 QA 후 점수 게이트 — qa_ledger.json 작성 후 통과해야 pass/90점 이상 보고 가능.
+python scripts/qa_score_gate.py "output/NN_slug_date/<주제>v<N>.html" "output/NN_slug_date/qa_ledger.json"
 
 # 선택) 사용자가 PPTX를 명시 요청한 경우에만, PDF/contact sheet QA 통과 후 생성.
 python scripts/export_pptx.py "output/NN_slug_date/<주제>v<N>.html" "output/NN_slug_date/<주제>v<N>.pptx"      # 정렬 보존용 이미지 기반 PPTX
@@ -345,7 +350,8 @@ API 키가 든 `.env`는 **읽거나 출력하지 않는다**. `gen_image.py`는
 - 산출 `.html`을 `deck.html`로 그대로 남기기 → ❌. 마감 때 `deck.html`을 `<주제>v<N>.html`로 rename(=PDF와 같은 이름). 작업 중 편집은 `deck.html`로 OK.
 - `.pdf` 줄간격이 `.html`보다 좁다 → reveal print-pdf의 한계. `export_pdf_shots.py`로 HTML 스샷을 합쳐 1:1로 만든다.
 - PPTX를 기본 산출물로 자동 생성하거나 편집 가능한 도형/텍스트로 바로 만들려고 함 → ❌. 현재 PPTX export는 정렬 보존용 이미지 기반 옵션이다. 사용자가 명시 요청한 경우에만 PDF QA 통과 후 생성한다. 편집 가능성이 필요하면 별도 네이티브 PPTX 빌드로 명시하고 QA 기준을 따로 잡는다.
-- SVG 라벨이 도형 밖으로 넘침/도형과 겹쳐 안 읽힘 → ❌. 라벨은 도형 **중앙**(타원이면 `cx,cy`에 `text-anchor:middle`)에 넣거나, 도형과 **충분히 띄운다**. 그리드 카드 높이가 제각각 → 래퍼 `flex column` + 카드 `flex:1`로 통일. 화살표·말풍선 꼬리는 **가리키는 대상(컵 등)에 실제로 닿게**.
+- 최종 점수나 `pt-qa-result: pass`를 말하면서 `qa_score_gate.py`를 통과하지 않음 → ❌. 렌더 QA ledger와 score gate pass 없이는 90점 이상/통과 보고 금지.
+- SVG/CSS 도식 라벨이 도형 밖으로 넘침/도형과 겹쳐 안 읽힘 → ❌. 라벨은 도형 **중앙**(타원이면 `cx,cy`에 `text-anchor:middle`)에 넣거나, 도형과 **충분히 띄운다**. 선/화살표는 대상 중심 또는 경계에 명확히 닿아야 하고, 끊긴 선·떠 있는 선·텍스트를 가로지르는 선은 P0. 도식 컨테이너에는 full-size 렌더 검수 후에만 `data-fullsize-qa="true"`와 `data-rendered-qa="true"`를 붙인다.
 - kicker 번호가 슬라이드마다 다른 위치(가운데/좌측 등)에 떠 통일성이 없음 → ❌. kicker를 `.s-head`(absolute 좌상단 고정)로 감싸 **모든 슬라이드 같은 자리**에. (템플릿에 반영됨)
 - 브랜드 색·폰트 변경 → ❌. 토큰 고정.
 - `.env`를 cat/Read로 열기 → ❌. 그럴 필요도 없고 키가 대화에 노출될 수 있음.

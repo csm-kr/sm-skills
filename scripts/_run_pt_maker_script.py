@@ -18,6 +18,11 @@ def main() -> None:
     if not target.is_file():
         sys.exit(f"ERROR: pt-maker script not found: {target}")
 
+    script_dir = str(target.parent)
+    if script_dir in sys.path:
+        sys.path.remove(script_dir)
+    sys.path.insert(0, script_dir)
+
     sys.argv = [str(target), *sys.argv[2:]]
     runpy.run_path(str(target), run_name="__main__")
 
