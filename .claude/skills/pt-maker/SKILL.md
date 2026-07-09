@@ -95,6 +95,15 @@ Use the image when score >= 7. If the best available web image scores 4-6, prefe
 
 Generated images must be clearly illustrative, not presented as documentary evidence. For factual slides, keep sourced data/text separate from generated artwork and add an asset note in `assets/CREDITS.txt`.
 
+### Visual material requirement guardrail
+Treat concrete visual material as mandatory for major slides, not optional decoration.
+
+- Do not ship text-only major slides. Cover, chapter opener, key concept, evidence/example, comparison, process/timeline, product, place, and closing slides must each have a planned visual asset.
+- Acceptable visual assets: user/original image, official/public photo, screenshot, chart/data visualization, SVG diagram/timeline/map/card grid, or approved AI-generated illustration.
+- Before building, write a `visual plan` for every slide in the outline: asset type, source/generation path, crop/layout role, and fallback.
+- If no suitable external image exists, build a self-made SVG/chart/diagram first for explanatory content. Use AI generation for conceptual or atmospheric scenes only after placeholder + cost + user approval.
+- During QA, reject any deck with two consecutive content slides that are text-only, or any slide whose title promises a visual but the body does not show one.
+
 ## Overview
 사용자와 **같이 만드는** reveal.js HTML 슬라이드 덱. 고정 브랜드 템플릿("메모장 + 밝은" 크림 종이 테마)을 채워서 `.html`로 배포하고 `.pdf`/이미지 기반 `.pptx`로 추출한다. 필요할 때만 덱 내부 콘텐츠 이미지를 생성한다.
 
@@ -147,10 +156,10 @@ archive/                        ← 작업 스크래치 격리
 
 1. **소스 확보 (Grill Me + 자료 인테이크)** → [reference/intake.md](reference/intake.md)를 따른다. 먼저 참고자료 여부를 확인하고, 없으면 바로 인터뷰로 들어간다. 질문은 **한 번에 하나씩** 하며 목적, 타겟 독자/청중, 한줄메시지, 발표 상황, 근거/데이터, CTA, 기획 방향을 좁힌 뒤 분위기/톤, 색상 팔레트, 사진·스크린샷·AI 이미지 추가 레벨을 확인한다. 받은 자료는 목적별로 분류하고, 손글씨·스케치·이미지는 활용 방식((a) 내용 재구성 vs (b) 원본 임베드)을 물어본 뒤 진행한다. → 산출물: 인테이크 노트 + 자료 맵 + 비주얼 방향.
 2. **웹 리서치** → [reference/research.md](reference/research.md). 근거가 빈 항목·최신 데이터를 웹으로 보강하고, 사용자가 웹에서 찾아서 만들라고 한 경우에는 이 단계를 생략하지 않는다. 리서치 결과는 `claim / source / date / slide-use` 형태로 소스 맵에 남긴다.
-3. **기획** → 스토리 짜기 전에 먼저 [reference/product-judgment.md](reference/product-judgment.md)로 **제품 판단 블록**(타겟 순간·king action·AI 특이점·신뢰 장치·반복 루프·뺄 것)을 한 번 잡는다 — 제품/AI 기능을 파는 덱이면 필수, 단순 정보 전달 덱이면 생략 가능. 그 위에서 **타겟 청중을 확정**하고 그들에게 꽂히는 한줄메시지·스토리라인·Chapter 구조를 잡는다. 슬라이드 개요(슬라이드별 제목+요점)를 사용자와 합의. **One idea per slide** — 제목에 "그리고/및"이 들어가면 두 장으로.
-4. **구성/빌드** → `new_deck.py "<slug>"`로 덱 폴더(`output/NN_slug_date/`)를 만들고 출력된 `deck.html`의 `<section>`을 복제·수정. 사용자가 참고자료 덱(PPT/PDF)을 주면 [reference/reference-ingest.md](reference/reference-ingest.md)로 콘텐츠+스타일을 흡수(스타일은 확인 후 취향 반영). **빌드 내내 craft.md의 [★ 심미성 체크리스트](reference/presentation-craft.md)(가독성·통일성·균형·여백·다양성·디테일)를 기준으로 만든다.** → 검증: 슬라이드 수 = 개요.
-5. **이미지** → 필요한 곳은 웹에서 먼저 찾고(스샷/실물 우선). 생성이 필요하면 **묻지 말고 바로 생성하지 않는다**: 먼저 해당 슬라이드에 `🖼 AI로 그릴 그림입니다` 플레이스홀더로 1차 초안을 만들고, **예상 장수·비용($0.03/장)을 알려 사용자에게 생성 여부를 확인**한다. 승인받은 뒤에만 `gen_image.py`로 생성(presentation-craft.md §3 기준·현재 활성 팔레트 반영)해 플레이스홀더를 교체. 사용자 원본 이미지는 생성 말고 그대로 임베드. 생성·임베드 이미지는 모두 그 덱의 `assets/`에 둔다(사용자 원본은 `input/`→`assets/` 복사).
-6. **리뷰 + 취향 갱신** → 슬라이드별 스크린샷으로 마감 QA — **craft.md [★ 심미성 체크리스트](reference/presentation-craft.md) 6항목(가독성·통일성·균형·여백·다양성·디테일)을 먼저 점검**하고 §4(약속·여백·bleed)도 본다 — 후 사용자 피드백 반영. **변경마다 덱 버전을 올린다.** 마감 시 이번 덱에서 배운 취향을 **diff로 제안**하고 사용자가 확인한 것만 `taste-profile.md`에 기록(version +1). 조용히 바꾸지 않는다. 생성 이미지 개수·비용($0.03/장)도 요약.
+3. **기획** → 스토리 짜기 전에 먼저 [reference/product-judgment.md](reference/product-judgment.md)로 **제품 판단 블록**(타겟 순간·king action·AI 특이점·신뢰 장치·반복 루프·뺄 것)을 한 번 잡는다 — 제품/AI 기능을 파는 덱이면 필수, 단순 정보 전달 덱이면 생략 가능. 그 위에서 **타겟 청중을 확정**하고 그들에게 꽂히는 한줄메시지·스토리라인·Chapter 구조를 잡는다. 슬라이드 개요(슬라이드별 제목+요점+`visual plan`)를 사용자와 합의. `visual plan`에는 사진/스샷/차트/SVG/생성 후보, 출처·경로, 레이아웃 역할, fallback을 적는다. **One idea per slide** — 제목에 "그리고/및"이 들어가면 두 장으로.
+4. **구성/빌드** → `new_deck.py "<slug>"`로 덱 폴더(`output/NN_slug_date/`)를 만들고 출력된 `deck.html`의 `<section>`을 복제·수정. 사용자가 참고자료 덱(PPT/PDF)을 주면 [reference/reference-ingest.md](reference/reference-ingest.md)로 콘텐츠+스타일을 흡수(스타일은 확인 후 취향 반영). 주요 슬라이드는 텍스트만으로 빌드하지 않고, `visual plan`의 시각자료 슬롯을 실제 사진·스샷·차트·SVG·승인된 생성 이미지 중 하나로 채운다. **빌드 내내 craft.md의 [★ 심미성 체크리스트](reference/presentation-craft.md)(가독성·통일성·균형·여백·시각자료·다양성·디테일)를 기준으로 만든다.** → 검증: 슬라이드 수 = 개요.
+5. **이미지/시각자료** → 모든 주요 슬라이드는 시각자료 슬롯을 가진다. 웹·공식·공개 자료에서 먼저 찾고(스샷/실물 우선), 데이터·흐름·비교는 인라인 SVG/차트/다이어그램을 우선한다. 생성이 필요하면 **묻지 말고 바로 생성하지 않는다**: 먼저 해당 슬라이드에 `🖼 AI로 그릴 그림입니다` 플레이스홀더로 1차 초안을 만들고, **예상 장수·비용($0.03/장)을 알려 사용자에게 생성 여부를 확인**한다. 승인받은 뒤에만 `gen_image.py`로 생성(presentation-craft.md §3 기준·현재 활성 팔레트 반영)해 플레이스홀더를 교체. 사용자 원본 이미지는 생성 말고 그대로 임베드. 생성·임베드 이미지는 모두 그 덱의 `assets/`에 둔다(사용자 원본은 `input/`→`assets/` 복사).
+6. **리뷰 + 취향 갱신** → 슬라이드별 스크린샷으로 마감 QA — **craft.md [★ 심미성 체크리스트](reference/presentation-craft.md) 7항목(가독성·통일성·균형·여백·시각자료·다양성·디테일)을 먼저 점검**하고 §4(약속·여백·bleed)도 본다 — 후 사용자 피드백 반영. **변경마다 덱 버전을 올린다.** 마감 시 이번 덱에서 배운 취향을 **diff로 제안**하고 사용자가 확인한 것만 `taste-profile.md`에 기록(version +1). 조용히 바꾸지 않는다. 생성 이미지 개수·비용($0.03/장)도 요약.
 
 ## 취향 학습 루프
 `taste-profile.md`가 취향 정본(구조·스토리 / 비주얼·브랜드 프리셋 / 어투·톤 / 안티-취향, 각 항목 `[conf:]`). 3지점에서 동작:
@@ -238,6 +247,8 @@ API 키가 든 `.env`는 **읽거나 출력하지 않는다**. `gen_image.py`는
 - 받은 이미지(손글씨·스케치)를 **어떻게 쓸지 안 묻고** 임의로 임베드/재구성 → ❌. 먼저 인풋을 넣어 달라고 요청하고, 받으면 (a) 내용 재구성 vs (b) 원본 임베드를 **물어본 뒤** 진행.
 - 사용자 원본 이미지를 생성/변형 → ❌. 원본 그대로 임베드.
 - 이미지를 사용자 확인 없이 바로 생성 → ❌. 1차는 `AI로 그릴 그림입니다` 플레이스홀더 + 예상 비용($0.03/장) 안내 → **승인 후** 생성·교체.
+- 표지·챕터 오프너·핵심 개념·사례·마감 슬라이드가 텍스트만 있음 → ❌. 각 주요 슬라이드에 사진/스샷/차트/SVG/승인된 AI 일러스트 중 하나를 배치하고, 개요 단계부터 `visual plan`을 적는다.
+- 콘텐츠 슬라이드가 두 장 이상 연속 텍스트만 있음 → ❌. 설명형이면 SVG/차트/타임라인으로, 무드형이면 승인받은 생성 이미지나 실사진으로 보강한다.
 - 모든 콘텐츠 슬라이드가 같은 레이아웃(불릿 좌·비주얼 우) → ❌ 단조롭다. 한 덱에서 카드 그리드·미러(비주얼 좌)·허브·가로 타임라인·중앙 statement·이미지 주연 등 3~4종 이상 섞는다(craft.md §2-11).
 - 줄간격이 좁아 빽빽 / 한글 라벨(SVG·kicker)을 모노폰트로 / 정확한 연도·숫자·고유명사를 손글씨 폰트(Nanum Pen)로 → ❌ 가독성. 본문 `line-height ≥ 1.5`, 한글은 Pretendard, 손글씨는 가벼운 메모·감탄에만(사실 정보는 정자체).
 - 본문·불릿을 32px보다 작게 만들거나 라벨을 24px보다 작게 욱여넣기 → ❌. 글자 축소 대신 문장을 줄이거나 슬라이드를 나눈다. 출처/fine-print도 18px 밑으로 내려가지 않는다.
