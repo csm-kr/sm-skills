@@ -1,0 +1,225 @@
+<!doctype html>
+<!--
+  pt-maker — 고정 브랜드 템플릿 (메모장 + 밝은 테마)
+  사용법:
+    1) 이 파일을 출력 폴더로 복사 (예: deck.html)
+    2) <section> 슬라이드 블록을 복제/수정해서 내용을 채운다
+    3) HTML로 그대로 배포하거나 scripts/export_pdf.py 로 PDF 추출
+  슬라이드 종류: .s-title / .s-section / .s-bullets / .s-image / .s-statement / .s-end
+  데이터 속성 data-deck-title 만 바꾸면 헤더/푸터에 자동 반영된다.
+-->
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SM Deck</title>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reset.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+
+  <!-- 폰트: Pretendard(본문) · JetBrains Mono(라벨) · Nanum Pen Script(메모 손글씨) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Nanum+Pen+Script&display=swap">
+
+  <!-- PDF 추출용 print 스타일 (?print-pdf 쿼리일 때만 로드) -->
+  <script>
+    (function () {
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = /print-pdf/gi.test(window.location.search)
+        ? 'https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/css/print/pdf.css'
+        : 'https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/css/print/paper.css';
+      document.head.appendChild(link);
+    })();
+  </script>
+
+  <style>
+    :root {
+      --paper:      #FAF3DE;  /* 크림 종이 배경 */
+      --card:       #FFFCF1;  /* 노트 카드 */
+      --ink:        #20174A;  /* 딥 인디고 잉크 (본문) */
+      --ink-soft:   #6c648f;  /* 흐린 잉크 (보조 텍스트) */
+      --cream-line: #E7DCB6;  /* 테두리·구분선 */
+      --accent:     #C73463;  /* 로즈 강조 */
+      --tape:       rgba(199,52,99,0.18);
+    }
+
+    .reveal { font-family: "Pretendard", system-ui, sans-serif; color: var(--ink); font-size: 32px; word-break: keep-all; overflow-wrap: break-word; text-wrap: pretty; }
+    .reveal .slides { text-align: left; }
+    .reveal .slides section { height: 100%; }
+
+    /* 종이 배경 + 아주 옅은 줄노트 라인 */
+    .reveal-viewport {
+      background-color: var(--paper);
+      background-image: repeating-linear-gradient(
+        to bottom, transparent 0, transparent 47px, rgba(32,23,74,0.045) 48px);
+    }
+
+    .reveal h1, .reveal h2, .reveal h3 { font-family: "Pretendard"; color: var(--ink); font-weight: 800; line-height: 1.12; letter-spacing: -0.01em; margin: 0 0 .35em; text-transform: none; text-wrap: balance; }
+    .reveal h1 { font-size: 2.3em; }
+    .reveal h2 { font-size: 1.6em; }
+    .reveal .accent { color: var(--accent); }
+
+    /* 모노스페이스 라벨 (랜딩 페이지의 Name/Experience 라벨 톤) */
+    /* 한글 라벨은 Pretendard로(영문용 모노폰트+넓은 자간은 한글을 "정 권 교 체"처럼 띄워 깨뜨림).
+       번호(.num)만 모노. 영문 라벨은 HTML에서 대문자로 직접 적는다. */
+    .kicker {
+      font-family: "Pretendard", sans-serif;
+      font-size: .5em; letter-spacing: .1em;
+      color: var(--accent); font-weight: 600; margin-bottom: 1em; display: inline-block;
+    }
+    .kicker .num { font-family: "JetBrains Mono", monospace; color: var(--ink-soft); letter-spacing: .05em; }
+
+    /* 노트 카드 */
+    .card {
+      background: var(--card);
+      border: 1.5px solid var(--ink);
+      border-radius: 18px;
+      box-shadow: 6px 8px 0 rgba(32,23,74,0.08);
+      padding: 1.1em 1.3em;
+    }
+
+    /* 제목 밑 로즈 밑줄 */
+    .rule { width: 64px; height: 4px; background: var(--accent); border-radius: 4px; margin: .2em 0 .9em; }
+
+    /* 불릿 */
+    .reveal .s-bullets ul { list-style: none; margin: 0; padding: 0; }
+    .reveal .s-bullets li { position: relative; padding-left: 1.2em; margin: .55em 0; line-height: 1.45; }
+    .reveal .s-bullets li::before { content: ""; position: absolute; left: 0; top: .55em; width: .55em; height: .55em; background: var(--accent); border-radius: 3px; transform: rotate(45deg); }
+    .reveal .s-bullets li .lead { font-weight: 700; }
+    .reveal small, .reveal .muted { color: var(--ink-soft); }
+
+    /* 손글씨 메모 스티커 */
+    .memo { font-family: "Nanum Pen Script", cursive; color: var(--accent); font-size: 1.35em; line-height: 1.1; transform: rotate(-3deg); display: inline-block; }
+
+    /* 이미지(원본 보존) — 폴라로이드 + 테이프 */
+    .polaroid { background: #fff; border: 1px solid var(--cream-line); border-radius: 6px; padding: 14px 14px 18px; box-shadow: 4px 6px 0 rgba(32,23,74,0.10); display: inline-block; max-width: 100%; position: relative; }
+    .polaroid img { display: block; border-radius: 3px; max-width: 100%; max-height: 56vh; object-fit: contain; }
+    .polaroid figcaption { font-family: "Nanum Pen Script", cursive; font-size: 1.25em; color: var(--ink); margin-top: .35em; text-align: center; }
+    .polaroid::before { content: ""; position: absolute; top: -14px; left: 50%; transform: translateX(-50%) rotate(-2deg); width: 110px; height: 26px; background: var(--tape); border: 1px solid rgba(199,52,99,0.25); }
+
+    /* 큰 한마디 */
+    .reveal .s-statement h2 { font-size: 2.1em; max-width: 16em; }
+
+    /* 레이아웃 헬퍼 */
+    .pad { padding: 4% 6%; box-sizing: border-box; }
+    .row { display: flex; gap: 5%; align-items: center; }
+    .col { flex: 1; min-width: 0; }
+    .center { display: flex; flex-direction: column; justify-content: center; height: 100%; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+
+    /* 슬라이드 번호 / 푸터 브랜딩 */
+    .reveal .slide-number { background: transparent; color: var(--ink-soft); font-family: "JetBrains Mono", monospace; font-size: 16px; }
+    .deck-foot { position: absolute; bottom: 18px; left: 40px; font-family: "JetBrains Mono", monospace; font-size: 13px; letter-spacing: .12em; color: var(--ink-soft); text-transform: uppercase; }
+
+    /* 고정 헤더 — kicker(번호/라벨)를 모든 슬라이드 같은 위치(좌상단)에 통일.
+       콘텐츠 정렬(center/statement)과 무관하게 번호가 같은 자리에 오도록 절대배치. */
+    .reveal .s-head { position: absolute; top: 6.2%; left: 6.2%; z-index: 6; }
+    .reveal .s-head .kicker { margin-bottom: 0; }
+  </style>
+</head>
+<body data-deck-title="SM Deck">
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- ===== 표지 ===== -->
+      <section class="s-title">
+        <div class="pad center">
+          <div class="s-head"><span class="kicker"><span class="num">00</span> / PRESENTATION</span></div>
+          <h1>여기에 <span class="accent">제목</span>을<br>적습니다</h1>
+          <div class="rule"></div>
+          <p class="muted">부제 한 줄. 무엇에 대한 발표인지 짧게.</p>
+          <p style="margin-top:1.4em;font-family:'JetBrains Mono',monospace;font-size:.5em;letter-spacing:.12em;color:var(--ink-soft)">SUNGMIN CHO · 2026</p>
+        </div>
+      </section>
+
+      <!-- ===== 섹션 구분 ===== -->
+      <section class="s-section">
+        <div class="pad center">
+          <div class="s-head"><span class="kicker"><span class="num">01</span> / SECTION</span></div>
+          <h1 class="accent">섹션 제목</h1>
+          <div class="rule"></div>
+          <p class="muted">이 섹션에서 다룰 내용 한 줄.</p>
+        </div>
+      </section>
+
+      <!-- ===== 불릿 슬라이드 ===== -->
+      <section class="s-bullets">
+        <div class="pad center">
+          <div class="s-head"><span class="kicker"><span class="num">02</span> / 핵심 내용</span></div>
+          <h2>요점은 이렇게</h2>
+          <div class="rule"></div>
+          <ul>
+            <li><span class="lead">첫째.</span> 핵심 주장을 한 문장으로.</li>
+            <li><span class="lead">둘째.</span> 근거나 데이터를 덧붙인다.</li>
+            <li><span class="lead">셋째.</span> 청중이 기억할 한 가지.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ===== 텍스트 + 이미지 (원본 보존) ===== -->
+      <section class="s-image">
+        <div class="pad center">
+          <div class="s-head"><span class="kicker"><span class="num">03</span> / 그림</span></div>
+          <div class="row">
+            <div class="col">
+              <h2>그림과 함께</h2>
+              <div class="rule"></div>
+              <p class="muted">사용자가 준 이미지(스케치·필기)는 <strong>원본 그대로</strong> 폴라로이드 프레임에 임베드한다. 생성 이미지도 같은 프레임을 쓴다.</p>
+              <p class="memo">메모처럼 한마디!</p>
+            </div>
+            <div class="col" style="text-align:center">
+              <figure class="polaroid">
+                <!-- src 를 원본 이미지 경로/데이터URI로 교체 -->
+                <img src="https://placehold.co/800x500/FFFCF1/20174A?text=original+image" alt="원본 이미지">
+                <figcaption>그림 설명</figcaption>
+              </figure>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 큰 한마디 ===== -->
+      <section class="s-statement">
+        <div class="pad center">
+          <div class="s-head"><span class="kicker"><span class="num">04</span> / 한마디</span></div>
+          <h2>강조하고 싶은 <span class="accent">핵심 문장</span>을 크게.</h2>
+        </div>
+      </section>
+
+      <!-- ===== 마무리 ===== -->
+      <section class="s-end">
+        <div class="pad center">
+          <span class="memo" style="font-size:1.8em">고맙습니다 :)</span>
+          <h1 style="margin-top:.3em">질문 환영</h1>
+          <div class="rule"></div>
+          <p class="muted">csm8167@naver.com</p>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+  <script>
+    Reveal.initialize({
+      width: 1280,
+      height: 720,
+      margin: 0.04,
+      minScale: 0.2,
+      maxScale: 1.6,
+      hash: true,
+      // PDF bleed 방지: center는 .center 클래스가 직접 처리(reveal 자체 중앙정렬을 끄지 않으면
+      // print-pdf에서 콘텐츠가 아래로 밀려 잘림), pdfPageHeightOffset:0으로 .pdf-page 높이를
+      // @page 높이와 일치시켜 페이지마다 1px씩 누적되던 인접 슬라이드 비침을 없앤다.
+      center: false,
+      pdfPageHeightOffset: 0,
+      slideNumber: 'c/t',
+      transition: 'fade',
+      transitionSpeed: 'fast'
+    });
+  </script>
+</body>
+</html>
