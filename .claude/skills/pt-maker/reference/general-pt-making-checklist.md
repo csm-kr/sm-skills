@@ -11,7 +11,9 @@
 5. 아래 기준으로 P0/P2와 100점 점수를 기록한다.
 6. P0가 하나라도 있거나 점수가 90점 미만이면 source HTML/CSS를 수정하고 다시 렌더링한다.
 7. 수정 후 contact sheet와 필요한 full-size PNG를 다시 만들고 QA를 반복한다.
-8. PDF/contact sheet가 통과한 뒤에만 PPTX로 export한다.
+8. QA가 통과하면 먼저 QA 결과와 HTML/PDF 후보를 사용자에게 보고하고, 그 다음 수정 요청 단계로 들어간다.
+9. 사용자가 수정 요청을 주면 새 버전으로 처리하고, 수정 → 재렌더 → QA 반복 → 재보고한다.
+10. PPTX는 기본 산출물이 아니다. 사용자가 명시 요청했거나 합의된 산출물에 PPTX가 포함된 경우에만, PDF/contact sheet 통과 후 export한다.
 
 ## Agent 검수 시스템
 
@@ -53,7 +55,8 @@ Rules:
 3. Main agent fixes the source HTML/CSS/assets.
 4. Main agent rerenders PDF/contact sheet.
 5. Repeat QA until `pt-qa-result: pass`, no P0, and score >= 90.
-6. Export PPTX only after pass.
+6. Report the passed QA result and HTML/PDF candidate to the user, then enter the revision phase.
+7. Export PPTX only when explicitly requested and only after pass.
 
 If no agent/subagent tool exists, record `qa-agent: unavailable` in build notes and run the same checklist manually. Do not skip the scoring loop.
 
@@ -134,7 +137,9 @@ If no agent/subagent tool exists, record `qa-agent: unavailable` in build notes 
 - PDF로 렌더링해 실제 보이는 상태를 확인했는가.
 - contact sheet로 전체 페이지를 한눈에 점검했는가.
 - 표지, 섹션 시작, 도표, 활동/퀴즈, 마지막 페이지를 큰 이미지로 확인했는가.
-- PDF가 통과한 뒤에만 PPTX로 export했는가.
+- QA 통과 후 HTML/PDF 후보와 QA 결과를 사용자에게 먼저 보고했는가.
+- PPTX가 기본 산출물로 자동 생성되지 않았는가.
+- PPTX가 필요하다면 사용자의 명시 요청 또는 합의가 있고, PDF가 통과한 뒤에만 export했는가.
 
 ## 100점 채점표
 
@@ -144,7 +149,7 @@ If no agent/subagent tool exists, record `qa-agent: unavailable` in build notes 
 - 도표/SVG/화살표 완성도: 15
 - 슬라이드 리듬과 변주: 10
 - 표지/마무리 완성도: 10
-- export 검증 증거: 5
+- HTML/PDF export 검증 증거: 5
 
 ## 즉시 fail 조건
 
@@ -173,5 +178,7 @@ fixes applied:
 rerendered: yes/no
 contact-sheet-reviewed: yes/no
 full-size-pages-reviewed: cover, section openers, diagrams/SVGs, activities/quizzes, final
-pptx-export-allowed: yes/no
+user-review-reported: yes/no
+pptx-export-requested: yes/no
+pptx-exported: yes/no/not-requested
 ```

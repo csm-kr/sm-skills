@@ -1,6 +1,6 @@
 ---
 name: pt-maker
-description: Use when Claude Code needs to create, build, or design a presentation deck or 발표자료 from a topic discussion, handwritten notes or sketch images, web pages, documents, existing reference decks, or a request to search the web and make a PT/deck, and produce a branded reveal.js HTML deck exported to .html, .pdf, and image-based .pptx. Start with a one-question-at-a-time Grill Me intake when the user gives only a topic, rough idea, asks to be grilled, or asks to find information online before making slides; first check for user-supplied reference materials such as PPT/PDF/PPTX/docs/screenshots/URLs/data, then determine purpose, planning direction, audience, presentation context, message, evidence, CTA, mood, and photo/image level before drafting. Use Color Hunt as a separate palette source when color direction or palette redesign is needed. Use for Korean presentation planning, web-researched PT creation, slide narrative, deck HTML construction, PDF/PPTX export, and user taste-profile based deck iteration.
+description: Use when Claude Code needs to create/design a presentation deck or 발표자료 from topic discussion, notes/sketches, web pages, docs, reference decks, URLs, or web-researched requests, and produce a branded reveal.js HTML deck exported by default to .html and .pdf; image-based .pptx is optional and only on explicit request. Start with one-question-at-a-time Grill Me intake when the user gives only a topic/rough idea, asks to be grilled, or asks to find info online; first check for PPT/PDF/PPTX/docs/screenshots/URLs/data, then determine purpose, audience, context, message, evidence, CTA, mood, and image level before drafting. Use Color Hunt only as a palette source when color direction/redesign is needed. Use for Korean presentation planning, web-researched PT creation, slide narrative, HTML deck construction, PDF export, optional PPTX export, and taste-profile iteration.
 ---
 
 # pt-maker
@@ -88,7 +88,8 @@ Before final delivery, read and apply [reference/general-pt-making-checklist.md]
 - If the environment provides agent/subagent tools, always run a dedicated QA reviewer agent before delivery. Give it the contact sheet, selected full-size PNGs, and the checklist. The reviewer must return only P0 hard fails, P2 polish candidates, 100-point score, required fixes, and recheck pages.
 - If agent tooling is unavailable, record `qa-agent: unavailable` and run the same checklist manually.
 - Treat any P0, export/aspect-ratio failure, or score below 90/100 as a blocking failure. Fix source HTML/CSS/assets, rerender PDF/contact sheet, and run the QA checklist again.
-- Export PPTX only after PDF/contact sheet QA passes with no P0 and score >= 90/100.
+- After internal QA passes, report the QA result and provide the HTML/PDF candidate for user review before entering revision work. Treat user-requested changes as a new version and rerun the QA loop before reporting again.
+- Do not export PPTX by default. Export PPTX only when the user explicitly asks for PPTX or the agreed output format requires it, and only after PDF/contact sheet QA passes with no P0 and score >= 90/100.
 
 ### Image fit rubric and generation trigger
 For each slide that needs an image, search web/official/public sources first and score candidate images before use.
@@ -115,7 +116,7 @@ Treat concrete visual material as mandatory for major slides, not optional decor
 - During QA, reject any deck with two consecutive content slides that are text-only, or any slide whose title promises a visual but the body does not show one.
 
 ## Overview
-사용자와 **같이 만드는** reveal.js HTML 슬라이드 덱. 고정 브랜드 템플릿("메모장 + 밝은" 크림 종이 테마)을 채워서 `.html`로 배포하고 `.pdf`/이미지 기반 `.pptx`로 추출한다. 필요할 때만 덱 내부 콘텐츠 이미지를 생성한다.
+사용자와 **같이 만드는** reveal.js HTML 슬라이드 덱. 고정 브랜드 템플릿("메모장 + 밝은" 크림 종이 테마)을 채워서 `.html`로 배포하고 기본 산출물은 `.pdf`로 추출한다. 이미지 기반 `.pptx`는 사용자가 명시 요청한 경우에만 옵션으로 생성한다. 필요할 때만 덱 내부 콘텐츠 이미지를 생성한다.
 
 핵심 흐름은 **.html 덱을 대화로 구성**하는 것이고, 이미지 생성(gpt-image-2)은 보조 기능이다.
 
@@ -169,7 +170,7 @@ archive/                        ← 작업 스크래치 격리
 3. **기획** → 스토리 짜기 전에 먼저 [reference/product-judgment.md](reference/product-judgment.md)로 **제품 판단 블록**(타겟 순간·king action·AI 특이점·신뢰 장치·반복 루프·뺄 것)을 한 번 잡는다 — 제품/AI 기능을 파는 덱이면 필수, 단순 정보 전달 덱이면 생략 가능. 그 위에서 **타겟 청중을 확정**하고 그들에게 꽂히는 한줄메시지·스토리라인·Chapter 구조를 잡는다. 슬라이드 개요(슬라이드별 제목+요점+`visual plan`)를 사용자와 합의. `visual plan`에는 사진/스샷/차트/SVG/생성 후보, 출처·경로, 레이아웃 역할, fallback을 적는다. **One idea per slide** — 제목에 "그리고/및"이 들어가면 두 장으로.
 4. **구성/빌드** → `new_deck.py "<slug>"`로 덱 폴더(`output/NN_slug_date/`)를 만들고 출력된 `deck.html`의 `<section>`을 복제·수정. 사용자가 참고자료 덱(PPT/PDF)을 주면 [reference/reference-ingest.md](reference/reference-ingest.md)로 콘텐츠+스타일을 흡수(스타일은 확인 후 취향 반영). 주요 슬라이드는 텍스트만으로 빌드하지 않고, `visual plan`의 시각자료 슬롯을 실제 사진·스샷·차트·SVG·승인된 생성 이미지 중 하나로 채운다. **빌드 내내 craft.md의 [★ 심미성 체크리스트](reference/presentation-craft.md)(가독성·통일성·균형·여백·시각자료·다양성·디테일)를 기준으로 만든다.** → 검증: 슬라이드 수 = 개요.
 5. **이미지/시각자료** → 모든 주요 슬라이드는 시각자료 슬롯을 가진다. 웹·공식·공개 자료에서 먼저 찾고(스샷/실물 우선), 데이터·흐름·비교는 인라인 SVG/차트/다이어그램을 우선한다. 생성이 필요하면 **묻지 말고 바로 생성하지 않는다**: 먼저 해당 슬라이드에 `🖼 AI로 그릴 그림입니다` 플레이스홀더로 1차 초안을 만들고, **예상 장수·비용($0.03/장)을 알려 사용자에게 생성 여부를 확인**한다. 승인받은 뒤에만 `gen_image.py`로 생성(presentation-craft.md §3 기준·현재 활성 팔레트 반영)해 플레이스홀더를 교체. 사용자 원본 이미지는 생성 말고 그대로 임베드. 생성·임베드 이미지는 모두 그 덱의 `assets/`에 둔다(사용자 원본은 `input/`→`assets/` 복사).
-6. **필수 QA iteration + 취향 갱신** → PDF/contact sheet를 렌더링하고 [reference/general-pt-making-checklist.md](reference/general-pt-making-checklist.md)와 [alignment-eval-rubric.md](reference/alignment-eval-rubric.md)로 채점한다. agent/subagent 도구가 있으면 **반드시 dedicated QA reviewer agent**를 실행해 P0/P2/100점 점수/수정 목록을 받는다(없으면 `qa-agent: unavailable` 기록 후 수동으로 동일 체크). P0가 하나라도 있거나 점수 < 90이면 source HTML/CSS/assets를 수정 → PDF/contact sheet 재렌더 → agent/manual QA를 다시 반복한다. 통과 후 사용자 피드백 반영. **변경마다 덱 버전을 올린다.** 마감 시 이번 덱에서 배운 취향을 **diff로 제안**하고 사용자가 확인한 것만 `taste-profile.md`에 기록(version +1). 조용히 바꾸지 않는다. 생성 이미지 개수·비용($0.03/장)도 요약.
+6. **필수 QA iteration + 사용자 검수 단계** → PDF/contact sheet를 렌더링하고 [reference/general-pt-making-checklist.md](reference/general-pt-making-checklist.md)와 [alignment-eval-rubric.md](reference/alignment-eval-rubric.md)로 채점한다. agent/subagent 도구가 있으면 **반드시 dedicated QA reviewer agent**를 실행해 P0/P2/100점 점수/수정 목록을 받는다(없으면 `qa-agent: unavailable` 기록 후 수동으로 동일 체크). P0가 하나라도 있거나 점수 < 90이면 source HTML/CSS/assets를 수정 → PDF/contact sheet 재렌더 → agent/manual QA를 다시 반복한다. 통과하면 먼저 QA 결과(score, P0=0, 남은 P2)와 HTML/PDF 후보를 사용자에게 보고하고, 그 다음 수정 요청 단계로 들어간다. 사용자가 수정 요청을 주면 새 버전으로 처리해 수정 → 재렌더 → QA 반복 → 재보고한다. **변경마다 덱 버전을 올린다.** 최종 마감 시 이번 덱에서 배운 취향을 **diff로 제안**하고 사용자가 확인한 것만 `taste-profile.md`에 기록(version +1). 조용히 바꾸지 않는다. 생성 이미지 개수·비용($0.03/장)도 요약.
 
 ## 취향 학습 루프
 `taste-profile.md`가 취향 정본(구조·스토리 / 비주얼·브랜드 프리셋 / 어투·톤 / 안티-취향, 각 항목 `[conf:]`). 3지점에서 동작:
@@ -228,12 +229,14 @@ mv output/NN_slug_date/deck.html "output/NN_slug_date/<주제>v<N>.html"
 # 1) 그 html에서 PDF 생성 — deck.pdf 말고 같은 주제+버전 이름으로.
 python scripts/export_pdf.py "output/NN_slug_date/<주제>v<N>.html" "output/NN_slug_date/<주제>v<N>.pdf"        # 기본: print-pdf
 python scripts/export_pdf_shots.py "output/NN_slug_date/<주제>v<N>.html" "output/NN_slug_date/<주제>v<N>.pdf"   # 화면과 1:1(스샷 합치기)
-python scripts/export_pptx.py "output/NN_slug_date/<주제>v<N>.html" "output/NN_slug_date/<주제>v<N>.pptx"      # 정렬 보존용 이미지 기반 PPTX
 python scripts/verify_pdf.py "output/NN_slug_date/<주제>v<N>.pdf"                                              # bleed 검증(콘택트 시트) → Read로 확인
+
+# 선택) 사용자가 PPTX를 명시 요청한 경우에만, PDF/contact sheet QA 통과 후 생성.
+python scripts/export_pptx.py "output/NN_slug_date/<주제>v<N>.html" "output/NN_slug_date/<주제>v<N>.pptx"      # 정렬 보존용 이미지 기반 PPTX
 ```
 - **파일명** — 산출물(`.html`·`.pdf`)은 `deck.*`가 아니라 **주제+버전**(`<주제>v<N>.html`/`.pdf`, 공백 없이)으로 저장한다. **`deck.html`을 그대로 남기지 않는다** — 작업 중엔 `deck.html`을 편집하고, **마감 때 위 0)단계로 rename**해 `.html`·`.pdf`가 같은 이름이 되게 한다. 표지 푸터의 `vN` 표기와 파일명 버전을 일치시킨다.
 - **.html과 .pdf 줄간격이 다를 때** — reveal `?print-pdf`(pdf.css + Chromium 인쇄 엔진 + 폰트 로드 타이밍)는 화면(paper.css)보다 줄간격이 좁게 나올 수 있다. 화면 그대로가 필요하면 **`export_pdf_shots.py`**(브라우저로 각 슬라이드 고해상도 스샷 → pymupdf로 16:9 PDF 합치기)로 만들면 **HTML과 1:1**.
-- **PPTX export** — `export_pptx.py`는 시각 정렬을 우선한다. HTML 또는 PDF를 슬라이드별 PNG로 렌더링한 뒤 각 PPTX 슬라이드에 16:9 이미지 한 장으로 넣는다. 텍스트/도형 편집성은 포기하지만 HTML/PDF와의 얼라인은 가장 안정적이다. 편집 가능한 PPTX가 필요하면 별도 네이티브 PPTX 빌드 플로우로 다룬다. **PPTX는 PDF/contact sheet가 general PT checklist QA를 통과한 뒤에만 생성한다.**
+- **PPTX export (optional, not default)** — `export_pptx.py`는 시각 정렬을 우선한다. HTML 또는 PDF를 슬라이드별 PNG로 렌더링한 뒤 각 PPTX 슬라이드에 16:9 이미지 한 장으로 넣는다. 텍스트/도형 편집성은 포기한다. 기본 산출물에는 포함하지 말고, 사용자가 PPTX를 명시 요청했거나 합의한 산출물에 PPTX가 있을 때만 생성한다. 편집 가능한 PPTX가 필요하면 별도 네이티브 PPTX 빌드 플로우로 다룬다. **PPTX는 PDF/contact sheet가 general PT checklist QA를 통과한 뒤에만 생성한다.**
 
 **PDF bleed 필수 점검** — 각 페이지 위·아래에 인접 슬라이드가 비치면 안 된다(장수 많을수록 심해짐). 템플릿에 `center:false` + `pdfPageHeightOffset:0`이 박혀 있어야 하고, `verify_pdf.py`로 캡처 검증. 자세히는 [presentation-craft.md](reference/presentation-craft.md) §4.
 `.html`은 CDN 폰트/reveal을 쓰므로 온라인에서 그대로 열린다. 완전 오프라인 단일 파일이 필요하면 사용자에게 별도 요청 시 reveal/폰트를 인라인.
@@ -250,7 +253,7 @@ API 키가 든 `.env`는 **읽거나 출력하지 않는다**. `gen_image.py`는
 | 사용자 그림 넣기 | `input/`→덱 `assets/` 복사 후 `s-image` polaroid `<img src>`에 임베드 |
 | 일러스트 생성 | `gen_image.py "프롬프트" output/NN_.../assets/out.png` |
 | PDF | `export_pdf.py output/NN_.../deck.html` |
-| PPTX | `export_pptx.py output/NN_.../<주제>v<N>.html output/NN_.../<주제>v<N>.pptx` |
+| PPTX(명시 요청 시만) | PDF/contact sheet QA 통과 후 `export_pptx.py output/NN_.../<주제>v<N>.html output/NN_.../<주제>v<N>.pptx` |
 | 미리보기 | Claude Code 브라우저/browse 도구로 `file://...output/NN_.../deck.html` 열어 스크린샷 |
 
 ## Common mistakes
@@ -267,7 +270,7 @@ API 키가 든 `.env`는 **읽거나 출력하지 않는다**. `gen_image.py`는
 - PDF를 `deck.pdf`로 저장 → ❌. 주제 이름(`"<주제>.pdf"`)으로.
 - 산출 `.html`을 `deck.html`로 그대로 남기기 → ❌. 마감 때 `deck.html`을 `<주제>v<N>.html`로 rename(=PDF와 같은 이름). 작업 중 편집은 `deck.html`로 OK.
 - `.pdf` 줄간격이 `.html`보다 좁다 → reveal print-pdf의 한계. `export_pdf_shots.py`로 HTML 스샷을 합쳐 1:1로 만든다.
-- PPTX를 편집 가능한 도형/텍스트로 바로 만들려고 함 → 현재 기본 export는 정렬 보존용 이미지 기반 PPTX다. 편집 가능성이 필요하면 별도 네이티브 PPTX 빌드로 명시하고 QA 기준을 따로 잡는다.
+- PPTX를 기본 산출물로 자동 생성하거나 편집 가능한 도형/텍스트로 바로 만들려고 함 → ❌. 현재 PPTX export는 정렬 보존용 이미지 기반 옵션이다. 사용자가 명시 요청한 경우에만 PDF QA 통과 후 생성한다. 편집 가능성이 필요하면 별도 네이티브 PPTX 빌드로 명시하고 QA 기준을 따로 잡는다.
 - SVG 라벨이 도형 밖으로 넘침/도형과 겹쳐 안 읽힘 → ❌. 라벨은 도형 **중앙**(타원이면 `cx,cy`에 `text-anchor:middle`)에 넣거나, 도형과 **충분히 띄운다**. 그리드 카드 높이가 제각각 → 래퍼 `flex column` + 카드 `flex:1`로 통일. 화살표·말풍선 꼬리는 **가리키는 대상(컵 등)에 실제로 닿게**.
 - kicker 번호가 슬라이드마다 다른 위치(가운데/좌측 등)에 떠 통일성이 없음 → ❌. kicker를 `.s-head`(absolute 좌상단 고정)로 감싸 **모든 슬라이드 같은 자리**에. (템플릿에 반영됨)
 - 브랜드 색·폰트 변경 → ❌. 토큰 고정.
