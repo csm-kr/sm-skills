@@ -60,6 +60,18 @@ def image_files(directory: Path) -> list[Path]:
     )
 
 
+def research_rows(text: str) -> dict[str, list[list[str]]]:
+    rows: dict[str, list[list[str]]] = {}
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("|"):
+            continue
+        cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+        if cells and cells[0] in {"동일 제품", "유사 제품", "상세 구조"}:
+            rows.setdefault(cells[0], []).append(cells)
+    return rows
+
+
 def check(
     skill_root: Path, project_no: str, conversation_original_count: int = 0
 ) -> dict[str, object]:
@@ -73,6 +85,9 @@ def check(
     info_path = input_root / "product-info.md"
     original_dir = input_root / "original-images"
     reference_dir = input_root / "real-references"
+    output_root = skill_root / "outputs" / project_no
+    research_path = output_root / "web-research.md"
+    analysis_path = output_root / "detail-page-analysis.md"
     errors: list[str] = []
     warnings: list[str] = []
 
@@ -94,6 +109,47 @@ def check(
     if missing_advantages:
         errors.append("empty core advantages: " + ", ".join(missing_advantages))
 
+    if not research_path.is_file():
+        errors.append(f"missing required web research file: {research_path}")
+    else:
+        research_text = research_path.read_text(encoding="utf-8")
+        if field_value(research_text, "조사 상태") != "완료":
+            errors.append(
+                f"web research is not complete; set '조사 상태: 완료' after recording exact and similar product searches: {research_path}"
+            )
+        rows = research_rows(research_text)
+        for row_type in ("동일 제품", "유사 제품"):
+            candidates = rows.get(row_type, [])
+            populated = [
+                cells
+                for cells in candidates
+                if len(cells) >= 3 and cells[1] and cells[2]
+            ]
+            if not populated:
+                errors.append(
+                    f"web research needs a populated '{row_type}' row with a query and URL or '검색 결과 없음': {research_path}"
+                )
+        structure_rows = [
+            cells
+            for cells in rows.get("상세 구조", [])
+            if len(cells) >= 6 and cells[1] and cells[2] and cells[5]
+        ]
+        if len(structure_rows) < 3:
+            errors.append(
+                f"web research needs at least 3 populated '상세 구조' rows before planning: {research_path}"
+            )
+
+    if not analysis_path.is_file():
+        errors.append(f"missing required detail-page analysis file: {analysis_path}")
+    else:
+        analysis_text = analysis_path.read_text(encoding="utf-8")
+        if "## 공통 패턴" not in analysis_text or len(
+            re.findall(r"https?://", analysis_text)
+        ) < 3:
+            errors.append(
+                f"detail-page analysis needs a common-pattern section and at least 3 source URLs: {analysis_path}"
+            )
+
     originals = image_files(original_dir)
     references = image_files(reference_dir)
     if not originals and conversation_original_count == 0:
@@ -111,6 +167,8 @@ def check(
         "ok": not errors,
         "project": project_no,
         "product_info": str(info_path),
+        "web_research": str(research_path),
+        "detail_page_analysis": str(analysis_path),
         "original_images": [str(path) for path in originals],
         "conversation_original_count": conversation_original_count,
         "style_references": [str(path) for path in references],

@@ -13,7 +13,14 @@ PILLOW_REQUIREMENT = "Pillow>=10.0,<13"
 
 
 def runtime_site_packages() -> Path:
-    return Path(__file__).resolve().parents[1] / ".runtime" / "pillow"
+    interpreter_tag = sys.implementation.cache_tag or (
+        f"python-{sys.version_info.major}{sys.version_info.minor}"
+    )
+    return (
+        Path(__file__).resolve().parents[1]
+        / ".runtime"
+        / f"pillow-{interpreter_tag}"
+    )
 
 
 def _import_image_modules():
@@ -23,7 +30,7 @@ def _import_image_modules():
 
 
 def load_pillow(*, install: bool):
-    """Return Pillow modules, optionally installing into .runtime/pillow."""
+    """Return Pillow modules, optionally installing into an ABI-local runtime."""
 
     try:
         return _import_image_modules()

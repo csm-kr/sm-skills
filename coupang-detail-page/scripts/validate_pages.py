@@ -12,8 +12,8 @@ from pathlib import Path
 from pillow_runtime import load_pillow
 
 
-TARGET_WIDTH = 780
-TARGET_HEIGHT = 3000
+TARGET_WIDTH = 800
+TARGET_HEIGHT = 2400
 EXTENSIONS = {".png"}
 DISCOVERABLE_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
 
@@ -109,7 +109,7 @@ def validate(directory: Path) -> dict[str, object]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Validate exactly ten page-01..page-10 images at 780x3000."
+        description="Validate exactly ten page-01..page-10 images at 800x2400."
     )
     parser.add_argument("directory", type=Path, help="Final image directory")
     parser.add_argument("--json", action="store_true", help="Print JSON report")
@@ -122,7 +122,7 @@ def main() -> int:
     if args.json:
         print(json.dumps(report, ensure_ascii=False, indent=2))
     elif report["ok"]:
-        print("OK: 10 images found; every image is 780x3000.")
+        print("OK: 10 images found; every image is 800x2400.")
     else:
         print("FAILED:")
         for error in report["errors"]:

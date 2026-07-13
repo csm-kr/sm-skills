@@ -10,7 +10,7 @@ Claude Code와 Codex에서 사용할 수 있는 스킬 모음.
 - **ai-readiness-cartography** — 임의 레포를 AI-Ready v2 루브릭(100점 · 7 카테고리)으로 감사해 전문 기술 대시보드 HTML + 점수 JSON + ROI 순 액션 리스트를 뽑는 스킬. `scripts/score.py`가 커버리지·hallucinated path·drift·god file 을 자동 채점한다.
 - **remove-image-background** — 사용자에게 한 번에 하나씩 질문해 ComfyUI 서버와 입출력 폴더를 설정하고, 로컬 드래그 앤 드롭 화면 또는 파일 경로로 받은 이미지를 BiRefNet으로 처리해 `<원본명>-rmbg.png` 투명 PNG로 저장하는 Windows·macOS·Linux 호환 스킬.
 - **inpaint-image-region** — 로컬 화면에서 원본을 드래그하고 변경 박스를 그린 뒤 프롬프트와 선택적 레퍼런스로 ComfyUI Flux 2 Klein 인페인팅을 실행한다. 레퍼런스를 비우면 자동으로 텍스트 전용 모드가 된다.
-- **coupang-detail-page** — Codex의 built-in `image_gen`으로 검증된 상품 정보와 원본 이미지를 바탕으로 쿠팡 상세페이지 이미지 10장을 생성·검수하는 스킬. `inputs/001/`과 `outputs/001/`에서 숫자 프로젝트로 관리하고 최종 PNG를 `780×3000`으로 검증한다.
+- **coupang-detail-page** — Codex의 built-in `image_gen`으로 원본 상품과 검증된 정보를 바탕으로 쿠팡 상세페이지 10장을 생성·검수하는 한국어 스킬. 동일 제품과 여러 실제 상세페이지의 훅·본문·카드·캡션 패턴을 조사하고, 3~6개 정보 구역과 모바일 16px 이상 타이포 체계를 적용한다. `inputs/001/`과 `outputs/001/`에서 숫자 프로젝트로 관리하고 최종 PNG를 `800×2400`으로 검증한다.
 
 각 스킬은 해당 디렉토리의 `SKILL.md` 에 정의돼 있다.
 
@@ -58,15 +58,15 @@ cd "$PROJECT_DIR/.agents/skills/coupang-detail-page"
 python3 scripts/init_project.py --prepare 1
 ```
 
-입력과 출력이 스킬 폴더 아래에 생성되므로 쓰기 가능한 프로젝트 로컬 `.agents/skills/` 설치를 사용한다. 설치 후 Codex에서 다음처럼 호출하면 한국어 온보딩이 시작된다. 스킬은 한 번에 한 질문만 하고, 선택 질문에는 번호 보기를 제시한다.
+입력과 출력이 스킬 폴더 아래에 생성되므로 쓰기 가능한 프로젝트 로컬 `.agents/skills/` 설치를 사용한다. 설치 후 Codex에서 다음처럼 호출하면 한국어 온보딩이 시작된다. 스킬은 한 번에 한 질문만 하고, 모든 선택 질문의 마지막 번호에는 `다른 답변하기`를 제시한다. 입력 확인부터 `N/10` 생성·QA·납품까지 진행 상황도 중간중간 알린다.
 
 ```text
 $coupang-detail-page를 시작해줘.
 ```
 
-온보딩 안내에 따라 원본 상품 사진 3~8장(최소 1장)을 `inputs/001/original-images/`에, 참고할 실제 상세페이지 1~3장(선택)을 `inputs/001/real-references/`에 넣는다. 상품 정보는 Git에서 제외되는 `inputs/001/product-info.md`에 저장된다. 준비 검사를 통과하고 사용자가 생성 시작을 선택하면 장별 이미지 10개를 만들며, 최종본은 `outputs/001/final/page-01.png`부터 `page-10.png`까지 모두 `780×3000`으로 검증된다.
+온보딩 안내에 따라 원본 상품 사진 3~8장(최소 1장)을 `inputs/001/original-images/`에, 참고할 실제 상세페이지 1~3장(선택)을 `inputs/001/real-references/`에 넣는다. 상품 정보는 Git에서 제외되는 `inputs/001/product-info.md`에 저장된다. 스킬은 동일·유사 제품과 접근 가능한 실제 상세페이지를 최소 3개 조사해 `web-research.md`와 `detail-page-analysis.md`에 기록한다. 준비 검사를 통과하고 사용자가 생성 시작을 선택하면 텍스트와 디자인을 함께 장별로 생성하고 직접 검수한다. 최종본은 `outputs/001/final/page-01.png`부터 `page-10.png`까지 모두 `800×2400`으로 검증된다. 전체 실행 과정은 스킬 폴더의 `workflow.html`에서 볼 수 있다.
 
-이미지 정규화·전체 디코딩 검증과 정확한 한글 카피 후편집에는 Pillow를 사용한다. Pillow가 없고 `python3 -m pip`가 사용 가능하면 첫 필요 시 스킬 내부 `.runtime/`에 자동 설치해 시스템 Python 패키지를 변경하지 않는다. `pip`도 없다면 먼저 pip가 포함된 Python을 준비하거나 `python3 -m pip install -r requirements.txt`를 실행한다.
+이미지 정규화와 전체 디코딩 검증에는 Pillow를 사용한다. 한글 카피는 기본적으로 `image_gen` 호출 안에서 직접 조판하며, 후편집은 두 번의 직접 생성 실패 뒤 사용자가 선택한 예외 경로다. Pillow가 없고 `python3 -m pip`가 사용 가능하면 첫 필요 시 스킬 내부 `.runtime/`에 자동 설치해 시스템 Python 패키지를 변경하지 않는다. `pip`도 없다면 먼저 pip가 포함된 Python을 준비하거나 `python3 -m pip install -r requirements.txt`를 실행한다.
 
 ### Claude Code
 

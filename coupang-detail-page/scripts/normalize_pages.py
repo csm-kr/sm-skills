@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Normalize page-01..page-10 to 780x3000 using strict Pillow decoding."""
+"""Normalize page-01..page-10 to 800x2400 using strict Pillow decoding."""
 
 from __future__ import annotations
 
 import argparse
+import math
 import subprocess
 import sys
 from pathlib import Path
@@ -13,6 +14,9 @@ from validate_pages import TARGET_HEIGHT, TARGET_WIDTH, validate
 
 
 TARGET_RATIO = TARGET_WIDTH / TARGET_HEIGHT
+TARGET_UNIT_GCD = math.gcd(TARGET_WIDTH, TARGET_HEIGHT)
+TARGET_RATIO_WIDTH = TARGET_WIDTH // TARGET_UNIT_GCD
+TARGET_RATIO_HEIGHT = TARGET_HEIGHT // TARGET_UNIT_GCD
 SOURCE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".heic", ".avif"}
 
 
@@ -45,8 +49,69 @@ def crop_box(width: int, height: int) -> tuple[int, int, int, int]:
     return 0, top, width, top + crop_height
 
 
-def normalize_with_pillow(source: Path, destination: Path, allow_crop: bool) -> None:
+def padded_canvas_size(width: int, height: int) -> tuple[int, int]:
+    """Return the smallest exact 1:3 canvas that contains the source."""
+
+    scale = math.ceil(
+        max(width / TARGET_RATIO_WIDTH, height / TARGET_RATIO_HEIGHT)
+    )
+    return TARGET_RATIO_WIDTH * scale, TARGET_RATIO_HEIGHT * scale
+
+
+def sample_corner_background(image) -> tuple[int, int, int]:
+    """Estimate a conservative solid background color from four corner patches."""
+
+    from PIL import ImageStat
+
+    patch_size = max(1, min(64, image.width // 10, image.height // 10))
+    boxes = (
+        (0, 0, patch_size, patch_size),
+        (image.width - patch_size, 0, image.width, patch_size),
+        (0, image.height - patch_size, patch_size, image.height),
+        (
+            image.width - patch_size,
+            image.height - patch_size,
+            image.width,
+            image.height,
+        ),
+    )
+    means = [ImageStat.Stat(image.crop(box)).mean[:3] for box in boxes]
+    channels: list[int] = []
+    for channel in range(3):
+        values = sorted(mean[channel] for mean in means)
+        channels.append(round((values[1] + values[2]) / 2))
+    return tuple(channels)
+
+
+def pad_to_target_ratio(image):
+    """Center the full source on a sampled-color canvas without cropping it."""
+
+    from PIL import Image
+
+    canvas_width, canvas_height = padded_canvas_size(image.width, image.height)
+    canvas = Image.new(
+        "RGB",
+        (canvas_width, canvas_height),
+        sample_corner_background(image),
+    )
+    left = (canvas_width - image.width) // 2
+    top = (canvas_height - image.height) // 2
+    canvas.paste(image, (left, top))
+    return canvas
+
+
+def normalize_with_pillow(
+    source: Path,
+    destination: Path,
+    allow_crop: bool = False,
+    allow_background_pad: bool = False,
+) -> None:
     from PIL import Image, ImageOps
+
+    if allow_crop and allow_background_pad:
+        raise ValueError(
+            "--allow-center-crop and --allow-background-pad cannot be used together"
+        )
 
     with Image.open(source) as probe:
         probe.verify()
@@ -55,26 +120,41 @@ def normalize_with_pillow(source: Path, destination: Path, allow_crop: bool) -> 
         image = ImageOps.exif_transpose(raw).convert("RGB")
         ratio_error = abs((image.width / image.height) - TARGET_RATIO) / TARGET_RATIO
         if ratio_error > 0.02:
-            if not allow_crop:
+            if allow_background_pad:
+                image = pad_to_target_ratio(image)
+            elif allow_crop:
+                image = image.crop(crop_box(image.width, image.height))
+            else:
                 raise ValueError(
-                    f"{source.name}: aspect ratio differs by {ratio_error:.1%}; inspect and regenerate or use --allow-center-crop"
+                    f"{source.name}: aspect ratio differs by {ratio_error:.1%}; "
+                    "inspect and regenerate, use --allow-background-pad, or use --allow-center-crop"
                 )
-            image = image.crop(crop_box(image.width, image.height))
         image = image.resize((TARGET_WIDTH, TARGET_HEIGHT), Image.Resampling.LANCZOS)
         image.save(destination, format="PNG", optimize=True)
 
 
-def main() -> int:
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Create exact 780x3000 PNGs from page-01..page-10 source images."
+        description="Create exact 800x2400 PNGs from page-01..page-10 source images."
     )
     parser.add_argument("source_dir", type=Path)
     parser.add_argument("output_dir", type=Path)
-    parser.add_argument(
+    ratio_mode = parser.add_mutually_exclusive_group()
+    ratio_mode.add_argument(
         "--allow-center-crop",
         action="store_true",
         help="Center-crop mismatched ratios only after visually confirming the central safe area",
     )
+    ratio_mode.add_argument(
+        "--allow-background-pad",
+        action="store_true",
+        help="Preserve the full image and pad to 1:3 with a color sampled from its corners",
+    )
+    return parser
+
+
+def main() -> int:
+    parser = build_parser()
     args = parser.parse_args()
 
     if not args.source_dir.is_dir():
@@ -115,7 +195,12 @@ def main() -> int:
         for number, source in enumerate(pages, start=1):
             destination = args.output_dir / f"page-{number:02d}.png"
             created.append(destination)
-            normalizer(source, destination, args.allow_center_crop)
+            normalizer(
+                source,
+                destination,
+                allow_crop=args.allow_center_crop,
+                allow_background_pad=args.allow_background_pad,
+            )
     except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError) as exc:
         for path in created:
             path.unlink(missing_ok=True)
@@ -132,7 +217,7 @@ def main() -> int:
         return 1
 
     placeholder.unlink(missing_ok=True)
-    print(f"OK: normalized 10 pages with {backend}; every image is 780x3000.")
+    print(f"OK: normalized 10 pages with {backend}; every image is 800x2400.")
     return 0
 
 
