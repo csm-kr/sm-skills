@@ -1,17 +1,15 @@
 #!/usr/bin/env python3
-"""Normalize page-01..page-10 to 780x3000 using Pillow or macOS sips."""
+"""Normalize page-01..page-10 to 780x3000 using strict Pillow decoding."""
 
 from __future__ import annotations
 
 import argparse
-import shutil
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 from pillow_runtime import load_pillow
-from validate_pages import TARGET_HEIGHT, TARGET_WIDTH, image_size, validate
+from validate_pages import TARGET_HEIGHT, TARGET_WIDTH, validate
 
 
 TARGET_RATIO = TARGET_WIDTH / TARGET_HEIGHT
@@ -50,7 +48,10 @@ def crop_box(width: int, height: int) -> tuple[int, int, int, int]:
 def normalize_with_pillow(source: Path, destination: Path, allow_crop: bool) -> None:
     from PIL import Image, ImageOps
 
+    with Image.open(source) as probe:
+        probe.verify()
     with Image.open(source) as raw:
+        raw.load()
         image = ImageOps.exif_transpose(raw).convert("RGB")
         ratio_error = abs((image.width / image.height) - TARGET_RATIO) / TARGET_RATIO
         if ratio_error > 0.02:
@@ -61,41 +62,6 @@ def normalize_with_pillow(source: Path, destination: Path, allow_crop: bool) -> 
             image = image.crop(crop_box(image.width, image.height))
         image = image.resize((TARGET_WIDTH, TARGET_HEIGHT), Image.Resampling.LANCZOS)
         image.save(destination, format="PNG", optimize=True)
-
-
-def run_sips(arguments: list[str]) -> None:
-    subprocess.run(["sips", *arguments], check=True, stdout=subprocess.DEVNULL)
-
-
-def normalize_with_sips(source: Path, destination: Path, allow_crop: bool) -> None:
-    width, height = image_size(source)
-    ratio_error = abs((width / height) - TARGET_RATIO) / TARGET_RATIO
-    with tempfile.TemporaryDirectory(prefix="coupang-page-") as temp_dir:
-        working = source
-        if ratio_error > 0.02:
-            if not allow_crop:
-                raise ValueError(
-                    f"{source.name}: aspect ratio differs by {ratio_error:.1%}; inspect and regenerate or use --allow-center-crop"
-                )
-            left, top, right, bottom = crop_box(width, height)
-            crop_width = right - left
-            crop_height = bottom - top
-            cropped = Path(temp_dir) / "cropped.png"
-            run_sips(["-c", str(crop_height), str(crop_width), str(source), "--out", str(cropped)])
-            working = cropped
-        run_sips(
-            [
-                "-s",
-                "format",
-                "png",
-                "-z",
-                str(TARGET_HEIGHT),
-                str(TARGET_WIDTH),
-                str(working),
-                "--out",
-                str(destination),
-            ]
-        )
 
 
 def main() -> int:
@@ -123,21 +89,12 @@ def main() -> int:
         return 1
 
     try:
-        load_pillow(install=False)
+        load_pillow(install=True)
         backend = "Pillow"
         normalizer = normalize_with_pillow
-    except ImportError:
-        if shutil.which("sips"):
-            backend = "sips"
-            normalizer = normalize_with_sips
-        else:
-            try:
-                load_pillow(install=True)
-                backend = "Pillow (isolated runtime)"
-                normalizer = normalize_with_pillow
-            except (ImportError, OSError, subprocess.CalledProcessError) as exc:
-                print(f"FAILED: could not prepare image runtime: {exc}", file=sys.stderr)
-                return 1
+    except (ImportError, OSError, RuntimeError, subprocess.CalledProcessError) as exc:
+        print(f"FAILED: could not prepare strict image runtime: {exc}", file=sys.stderr)
+        return 1
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     placeholder = args.output_dir / ".gitkeep"
@@ -159,7 +116,7 @@ def main() -> int:
             destination = args.output_dir / f"page-{number:02d}.png"
             created.append(destination)
             normalizer(source, destination, args.allow_center_crop)
-    except (OSError, ValueError, subprocess.CalledProcessError) as exc:
+    except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError) as exc:
         for path in created:
             path.unlink(missing_ok=True)
         print(f"FAILED: {exc}", file=sys.stderr)

@@ -1,2 +1,2 @@
-# Used automatically in .runtime/ when Pillow or macOS sips is unavailable.
+# Installed automatically into .runtime/ when Pillow is unavailable and pip exists.
 Pillow>=10.0,<13

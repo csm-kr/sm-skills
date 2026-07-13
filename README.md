@@ -66,7 +66,7 @@ $coupang-detail-page를 시작해줘.
 
 온보딩 안내에 따라 원본 상품 사진 3~8장(최소 1장)을 `inputs/001/original-images/`에, 참고할 실제 상세페이지 1~3장(선택)을 `inputs/001/real-references/`에 넣는다. 상품 정보는 Git에서 제외되는 `inputs/001/product-info.md`에 저장된다. 준비 검사를 통과하고 사용자가 생성 시작을 선택하면 장별 이미지 10개를 만들며, 최종본은 `outputs/001/final/page-01.png`부터 `page-10.png`까지 모두 `780×3000`으로 검증된다.
 
-이미지 정규화와 정확한 한글 카피 후편집에는 Pillow 또는 macOS `sips`를 사용한다. 둘 다 없는 환경에서는 첫 필요 시 Pillow를 스킬 내부 `.runtime/`에 자동 설치하며 시스템 Python 패키지를 변경하지 않는다.
+이미지 정규화·전체 디코딩 검증과 정확한 한글 카피 후편집에는 Pillow를 사용한다. Pillow가 없고 `python3 -m pip`가 사용 가능하면 첫 필요 시 스킬 내부 `.runtime/`에 자동 설치해 시스템 Python 패키지를 변경하지 않는다. `pip`도 없다면 먼저 pip가 포함된 Python을 준비하거나 `python3 -m pip install -r requirements.txt`를 실행한다.
 
 ### Claude Code
 

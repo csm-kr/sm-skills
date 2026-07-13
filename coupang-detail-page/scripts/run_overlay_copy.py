@@ -41,6 +41,19 @@ def parse_box(value: str, width: int, height: int) -> tuple[int, int, int, int]:
     return x, y, box_width, box_height
 
 
+def font_supports_korean(path: Path) -> bool:
+    _, _, ImageFont, _ = load_pillow(install=False)
+    try:
+        font = ImageFont.truetype(str(path), size=40)
+        signatures = []
+        for character in ("가", "나", "힣"):
+            mask = font.getmask(character)
+            signatures.append((mask.size, bytes(mask)))
+        return len(set(signatures)) == len(signatures)
+    except OSError:
+        return False
+
+
 def find_font(explicit: str | None) -> Path:
     candidates: list[str] = []
     if explicit:
@@ -51,7 +64,7 @@ def find_font(explicit: str | None) -> Path:
     candidates.extend(FONT_CANDIDATES)
     for candidate in candidates:
         path = Path(candidate).expanduser()
-        if path.is_file():
+        if path.is_file() and font_supports_korean(path):
             return path
 
     if shutil.which("fc-match"):
@@ -62,10 +75,10 @@ def find_font(explicit: str | None) -> Path:
             text=True,
         )
         path = Path(result.stdout.strip())
-        if result.returncode == 0 and path.is_file():
+        if result.returncode == 0 and path.is_file() and font_supports_korean(path):
             return path
     raise FileNotFoundError(
-        "Korean font not found; pass --font /path/to/Korean-font.ttf (or .ttc)"
+        "Korean-capable font not found; pass --font /path/to/Korean-font.ttf (or .ttc)"
     )
 
 
@@ -85,9 +98,11 @@ def wrap_text(draw, text: str, font, max_width: int) -> str:
                 lines.append(current)
                 current = ""
             while token and draw.textlength(token, font=font) > max_width:
-                split_at = len(token) - 1
-                while split_at > 1 and draw.textlength(token[:split_at], font=font) > max_width:
+                split_at = len(token)
+                while split_at > 0 and draw.textlength(token[:split_at], font=font) > max_width:
                     split_at -= 1
+                if split_at == 0:
+                    raise ValueError("copy box is narrower than one glyph at this font size")
                 lines.append(token[:split_at])
                 token = token[split_at:]
             current = token
@@ -99,7 +114,10 @@ def fit_text(draw, text: str, font_path: Path, max_size: int, min_size: int, box
     _, _, ImageFont, _ = load_pillow(install=False)
     for size in range(max_size, min_size - 1, -2):
         font = ImageFont.truetype(str(font_path), size=size)
-        wrapped = wrap_text(draw, text, font, box_width)
+        try:
+            wrapped = wrap_text(draw, text, font, box_width)
+        except ValueError:
+            continue
         bounds = draw.multiline_textbbox((0, 0), wrapped, font=font, spacing=spacing)
         rendered_width = bounds[2] - bounds[0]
         rendered_height = bounds[3] - bounds[1]
@@ -182,7 +200,7 @@ def main() -> int:
         )
         args.output.parent.mkdir(parents=True, exist_ok=True)
         image.save(args.output, format="PNG", optimize=True)
-    except (FileNotFoundError, OSError, ValueError, subprocess.CalledProcessError) as exc:
+    except (FileNotFoundError, OSError, RuntimeError, ValueError, subprocess.CalledProcessError) as exc:
         print(f"FAILED: {exc}", file=sys.stderr)
         return 1
 

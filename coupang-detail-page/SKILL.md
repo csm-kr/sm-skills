@@ -164,7 +164,7 @@ coupang-detail-page/
 - 해당 장의 목적과 다음 장으로 이어지는 흐름이 분명한지 확인한다.
 - 금지된 UI, 로고, 페이지 번호, 허위 정보와 시각적 효능 암시가 없는지 확인한다.
 
-실패하면 원인을 하나만 지정해 해당 장을 다시 호출한다. 텍스트 수정 재시도에서도 실패하면 텍스트 없는 버전과 명확한 빈 카피 영역을 생성한 뒤 `scripts/run_overlay_copy.py`로 승인 카피를 결정론적으로 삽입한다. 실제 후편집을 처음 실행할 때 스킬 로컬 `.runtime/`에 격리된 Pillow 환경이 필요하면 자동 준비된다. 예: `python3 scripts/run_overlay_copy.py text-free.png page-01.png --text "승인된 문구" --box 0.1,0.08,0.8,0.2`. 한글 폰트를 자동으로 찾지 못하면 `--font <한글-font.ttf-or-ttc>`를 지정한다. 빈 영역이나 깨진 문구가 남은 이미지는 최종본으로 승인하지 않는다.
+실패하면 원인을 하나만 지정해 해당 장을 다시 호출한다. 텍스트 수정 재시도에서도 실패하면 텍스트 없는 버전과 명확한 빈 카피 영역을 생성한 뒤 `scripts/run_overlay_copy.py`로 승인 카피를 결정론적으로 삽입한다. 실제 후편집을 처음 실행할 때 스킬 로컬 `.runtime/`에 격리된 Pillow 환경이 필요하면 `pip`가 있는 Python에서 자동 준비된다. 예: `python3 scripts/run_overlay_copy.py text-free.png page-01.png --text "승인된 문구" --box 0.1,0.08,0.8,0.2`. 한글 글리프를 지원하는 폰트를 자동으로 찾지 못하면 `--font <한글-font.ttf-or-ttc>`를 지정한다. 빈 영역이나 깨진 문구가 남은 이미지는 최종본으로 승인하지 않는다.
 
 ### 7. 규격을 정규화하고 하드 게이트를 실행한다
 
@@ -172,7 +172,7 @@ built-in `image_gen`은 정확한 픽셀 크기 인자를 제공하지 않으므
 
 - 원본 비율이 `13:50`과 실질적으로 같으면 균일 리샘플링으로 `780x3000`으로 변환한다.
 - 비율이 다르면 비균일 스트레칭을 금지한다. 먼저 결과를 시각적으로 검사하고 모든 핵심 요소가 중앙 안전 영역 안에 있을 때만 중앙 크롭한다. 그렇지 않으면 해당 장을 재생성한다.
-- macOS에서는 `python3 scripts/normalize_pages.py outputs/<project-no>/raw outputs/<project-no>/final`을 사용한다. 안전한 중앙 크롭을 직접 확인한 경우에만 `--allow-center-crop`을 추가한다.
+- 모든 플랫폼에서 `python3 scripts/normalize_pages.py outputs/<project-no>/raw outputs/<project-no>/final`을 사용한다. 엄격한 전체 디코딩을 위해 Pillow를 사용하며, 없으면 `pip`가 있는 Python에서 스킬 로컬 `.runtime/`에 자동 설치한다. 안전한 중앙 크롭을 직접 확인한 경우에만 `--allow-center-crop`을 추가한다.
 - `python3 scripts/validate_pages.py outputs/<project-no>/final`이 성공할 때까지 완료하지 않는다.
 
 ## 최종 검수

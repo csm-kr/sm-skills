@@ -41,23 +41,39 @@ def load_pillow(*, install: bool):
             raise
 
     target.mkdir(parents=True, exist_ok=True)
+    pip_probe = subprocess.run(
+        [sys.executable, "-m", "pip", "--version"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if pip_probe.returncode != 0:
+        raise RuntimeError(
+            "Pillow is unavailable and this Python has no pip; install pip or run `python3 -m pip install -r requirements.txt` with a Python that provides pip"
+        )
     print(
         f"Preparing isolated image runtime at {target} ({PILLOW_REQUIREMENT})...",
         file=sys.stderr,
     )
-    subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "pip",
-            "install",
-            "--disable-pip-version-check",
-            "--no-input",
-            "--target",
-            str(target),
-            PILLOW_REQUIREMENT,
-        ],
-        check=True,
-    )
+    try:
+        subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "pip",
+                "install",
+                "--disable-pip-version-check",
+                "--no-input",
+                "--target",
+                str(target),
+                PILLOW_REQUIREMENT,
+            ],
+            check=True,
+        )
+    except subprocess.CalledProcessError as exc:
+        raise RuntimeError(f"isolated Pillow installation failed with exit {exc.returncode}") from exc
     importlib.invalidate_caches()
-    return _import_image_modules()
+    try:
+        return _import_image_modules()
+    except ImportError as exc:
+        raise RuntimeError("Pillow installation completed but could not be imported") from exc

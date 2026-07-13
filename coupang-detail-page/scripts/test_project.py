@@ -9,7 +9,9 @@ from pathlib import Path
 
 from check_project import check
 from init_project import choose_number, initialize, prepare
-from validate_pages import validate
+from pillow_runtime import load_pillow
+from run_overlay_copy import wrap_text
+from validate_pages import image_size, validate
 
 
 COMPLETE_PRODUCT_INFO = """# 상품 정보
@@ -136,6 +138,25 @@ class ProjectWorkflowTest(unittest.TestCase):
             report = validate(final)
             self.assertFalse(report["ok"])
             self.assertTrue(any("unexpected" in error for error in report["errors"]))
+
+    def test_strict_decode_rejects_half_truncated_png(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "truncated.png"
+            Image, _, _, _ = load_pillow(install=True)
+            Image.new("RGB", (780, 3000), "white").save(path, format="PNG")
+            data = path.read_bytes()
+            path.write_bytes(data[: len(data) // 2])
+            with self.assertRaises((OSError, ValueError)):
+                image_size(path, required_format="PNG")
+
+    def test_wrap_text_rejects_box_narrower_than_one_glyph(self) -> None:
+        class AlwaysWideDraw:
+            @staticmethod
+            def textlength(_text, font=None):
+                return 100
+
+        with self.assertRaises(ValueError):
+            wrap_text(AlwaysWideDraw(), "승", object(), 10)
 
 
 if __name__ == "__main__":
