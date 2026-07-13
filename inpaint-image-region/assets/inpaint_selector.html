@@ -41,6 +41,7 @@
       box-shadow: 0 18px 50px rgb(0 0 0 / 20%);
     }
     .panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+    .heading-actions { display: flex; align-items: center; gap: 8px; }
     .tag { color: var(--muted); font-size: 12px; }
     textarea {
       width: 100%;
@@ -92,6 +93,17 @@
     }
     button:hover:not(:disabled) { transform: translateY(-1px); background: #9cb2ff; }
     button:disabled { opacity: .42; cursor: not-allowed; }
+    .del-button {
+      min-width: 38px;
+      padding: 5px 8px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: .04em;
+    }
+    .del-button:hover:not(:disabled) { border-color: #7b454d; background: #3a2229; color: #ffb2b2; }
     .secondary-button { border: 1px solid var(--line); background: #272e3f; color: var(--text); }
     .secondary-button:hover:not(:disabled) { background: #313a50; }
     .execute-button { background: var(--success); color: #092119; }
@@ -155,11 +167,17 @@
     <div class="top-grid">
       <section class="panel">
         <div class="panel-heading"><h2>변경할 내용</h2><span class="tag">필수</span></div>
-        <textarea id="prompt" placeholder="예: 선택한 모자를 자연스러운 대머리로 바꿔줘"></textarea>
+        <textarea id="prompt" placeholder="예: 모자를 대머리로 바꿔줘"></textarea>
       </section>
 
       <section class="panel">
-        <div class="panel-heading"><h2>레퍼런스 이미지 (선택)</h2><span id="modeText" class="tag">텍스트 전용</span></div>
+        <div class="panel-heading">
+          <h2>레퍼런스 이미지 (선택)</h2>
+          <div class="heading-actions">
+            <span id="modeText" class="tag">텍스트 전용</span>
+            <button id="clearReference" class="del-button" type="button" aria-label="레퍼런스 이미지 삭제" title="레퍼런스 이미지 삭제" disabled>Del</button>
+          </div>
+        </div>
         <div class="reference-content">
           <label id="referenceDrop" class="drop-zone compact" for="referenceInput">
             <span><strong>레퍼런스를 여기에 드롭</strong>비워두면 텍스트만 사용합니다.</span>
@@ -180,13 +198,19 @@
           <button id="execute" class="execute-button" type="button" disabled>바로 인페인팅 실행</button>
         </div>
       </div>
-      <p class="hint">Agent가 영어 프롬프트를 번역·보강합니다. 실행 버튼은 현재 보강된 프롬프트를 그대로 사용합니다.</p>
+      <p class="hint">한국어는 짧게 번역하고, 명확한 영어는 그대로 사용합니다. 실행 버튼은 표시된 프롬프트를 그대로 사용합니다.</p>
       <p id="status" role="status"></p>
     </section>
 
     <div class="workspace-grid">
       <section class="panel">
-        <div class="panel-heading"><h2>원본</h2><span id="zoomText" class="tag">100%</span></div>
+        <div class="panel-heading">
+          <h2>원본</h2>
+          <div class="heading-actions">
+            <span id="zoomText" class="tag">100%</span>
+            <button id="clearSource" class="del-button" type="button" aria-label="원본 이미지 삭제" title="원본 이미지 삭제" disabled>Del</button>
+          </div>
+        </div>
         <label id="sourceDrop" class="drop-zone" for="sourceInput">
           <span><strong>원본 이미지를 여기에 드롭</strong>또는 클릭해서 파일을 선택하세요.</span>
         </label>
@@ -196,7 +220,13 @@
       </section>
 
       <section class="panel">
-        <div class="panel-heading"><h2>결과</h2><span class="tag">슬라이더로 원본과 비교</span></div>
+        <div class="panel-heading">
+          <h2>결과</h2>
+          <div class="heading-actions">
+            <span class="tag">슬라이더로 원본과 비교</span>
+            <button id="clearResult" class="del-button" type="button" aria-label="결과 이미지 삭제" title="결과 이미지 삭제" disabled>Del</button>
+          </div>
+        </div>
         <div id="comparisonPlaceholder" class="comparison-placeholder">실행이 끝나면 원본과 결과를 이 자리에서 비교할 수 있습니다.</div>
         <div id="comparison" class="comparison">
           <div id="compareStage" class="compare-stage">
@@ -235,6 +265,9 @@
     const submitButton = document.querySelector("#submit");
     const regenerateButton = document.querySelector("#regenerate");
     const executeButton = document.querySelector("#execute");
+    const clearSourceButton = document.querySelector("#clearSource");
+    const clearReferenceButton = document.querySelector("#clearReference");
+    const clearResultButton = document.querySelector("#clearResult");
     const closeButton = document.querySelector("#close");
     const statusText = document.querySelector("#status");
     const comparisonPlaceholder = document.querySelector("#comparisonPlaceholder");
@@ -286,6 +319,7 @@
       comparisonPlaceholder.style.display = "grid";
       afterImage.removeAttribute("src");
       closeButton.style.display = "none";
+      clearResultButton.disabled = true;
     }
 
     function resetEnhancedPrompt() {
@@ -311,6 +345,7 @@
         zoomText.textContent = "100%";
         canvasWrap.style.display = "block";
         sourceDrop.style.display = "none";
+        clearSourceButton.disabled = false;
         beforeImage.src = sourceObjectUrl;
         compareStage.style.aspectRatio = `${image.naturalWidth} / ${image.naturalHeight}`;
         draw();
@@ -330,8 +365,48 @@
       referencePreview.style.display = "block";
       referenceDrop.querySelector("span").innerHTML = `<strong>${file.name}</strong>다른 이미지를 드롭하면 교체됩니다.`;
       modeText.textContent = "레퍼런스 + 텍스트";
+      clearReferenceButton.disabled = false;
       resetEnhancedPrompt();
       setStatus("");
+    }
+
+    function clearSource() {
+      window.clearTimeout(pollTimer);
+      if (sourceObjectUrl) URL.revokeObjectURL(sourceObjectUrl);
+      sourceFile = null;
+      sourceImage = null;
+      sourceObjectUrl = null;
+      sourceInput.value = "";
+      box = null;
+      start = null;
+      zoom = 1;
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      canvas.width = 0;
+      canvas.height = 0;
+      canvas.style.width = "100%";
+      canvasWrap.style.display = "none";
+      sourceDrop.style.display = "grid";
+      beforeImage.removeAttribute("src");
+      zoomText.textContent = "100%";
+      boxText.textContent = "이미지를 넣은 뒤 바꿀 영역을 드래그하세요.";
+      clearSourceButton.disabled = true;
+      submitButton.disabled = false;
+      resetEnhancedPrompt();
+      setStatus("원본 이미지를 화면에서 지웠습니다.");
+    }
+
+    function clearReference() {
+      if (referenceObjectUrl) URL.revokeObjectURL(referenceObjectUrl);
+      referenceFile = null;
+      referenceObjectUrl = null;
+      referenceInput.value = "";
+      referencePreview.removeAttribute("src");
+      referencePreview.style.display = "none";
+      referenceDrop.querySelector("span").innerHTML = "<strong>레퍼런스를 여기에 드롭</strong>비워두면 텍스트만 사용합니다.";
+      modeText.textContent = "텍스트 전용";
+      clearReferenceButton.disabled = true;
+      resetEnhancedPrompt();
+      setStatus("레퍼런스 이미지를 화면에서 지웠습니다.");
     }
 
     function canvasPoint(event) {
@@ -442,6 +517,7 @@
           comparisonPlaceholder.style.display = "none";
           comparison.style.display = "block";
           closeButton.style.display = "inline-block";
+          clearResultButton.disabled = false;
           setStatus(`${result.result_name} 생성 완료`);
         } else if (result.state === "error") {
           throw new Error(result.error || "인페인팅 실행에 실패했습니다.");
@@ -525,6 +601,13 @@
       const value = Number(compareSlider.value);
       afterImage.style.clipPath = `inset(0 ${100 - value}% 0 0)`;
       compareDivider.style.left = `${value}%`;
+    });
+
+    clearSourceButton.addEventListener("click", clearSource);
+    clearReferenceButton.addEventListener("click", clearReference);
+    clearResultButton.addEventListener("click", () => {
+      resetResult();
+      setStatus("결과 이미지를 화면에서 지웠습니다. 저장된 파일은 유지됩니다.");
     });
 
     closeButton.addEventListener("click", async () => {
