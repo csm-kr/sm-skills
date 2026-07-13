@@ -27,6 +27,8 @@
 <skill-root>/inputs/<project-no>/original-images/
 ```
 
+실측·실사 시험은 `evidence/`, 웹에서 동일·유력 판정한 이미지는 `web-confirmed/`, 스타일 자료는 `real-references/`에 둔다. 웹 파일을 `original-images/`에 둔 상태는 허용하지 않는다. 과거 실행 자료도 생성 전에 `web-confirmed/`로 이동하고 `product-info.md`·`asset-map.md`의 경로와 실제 SHA256을 갱신한다.
+
 예시:
 
 ```text
@@ -42,12 +44,16 @@ inputs/001/original-images/detail.jpg
 각 파일을 다음 형식으로 기록한다.
 
 ```text
-ID: ORIGINAL_PRODUCT_01
+ASSET_ID: A01
+ROLE: RAW_PRIMARY | RAW_DETAIL | RAW_MEASUREMENT | RAW_DEMO | WEB_MATCH
 경로: <skill-root>/inputs/<project-no>/original-images/<filename>
 시점: 정면 | 측면 | 후면 | 상단 | 디테일 | 구성품 | 패키지
 확인 가능: <형태, 색상, 부품, 라벨, 구성품>
 가림/불확실: <보이지 않거나 판독할 수 없는 부분>
 우선순위: primary | supporting
+SHA256: <실제 파일 해시>
+허용 용도:
+금지 전이:
 ```
 
 대표 정면 또는 3/4 이미지를 `primary`로 지정한다. 측면, 디테일과 구성품 이미지는 필요한 장에서만 보조한다.
@@ -79,10 +85,10 @@ ID: ORIGINAL_PRODUCT_01
 
 ## 제품 불변 요소
 
-10개 프롬프트에 같은 불변 요소 블록을 반복한다.
+선정한 모든 페이지 프롬프트에 같은 불변 요소 블록을 반복한다.
 
 ```text
-ORIGINAL_PRODUCT invariants:
+RAW_PRODUCT invariants (`RAW_PRIMARY` / `RAW_DETAIL`):
 - preserve the exact product silhouette and proportions
 - preserve the visible component count and placement
 - preserve the verified colors, materials, label and logo placement
@@ -95,22 +101,18 @@ ORIGINAL_PRODUCT invariants:
 
 제품이 작게 등장하는 생활 장면에도 이 블록을 유지한다. 장식적 이유로 색상을 바꾸거나 구성품을 늘리지 않는다.
 
-## 장별 원본 선택
+## 정보 역할별 원본 선택
 
-| 장 | 우선 사용할 원본 |
-|---|---|
-| 1 문제 후킹 | 제품이 필요하지 않으면 상황 이미지만 사용하고, 등장하면 대표 원본 사용 |
-| 2 필요성 | 상황 중심으로 구성하고 제품 등장 시 대표 원본 사용 |
-| 3 상품 소개 | 대표 정면/3·4 원본과 패키지 원본 |
-| 4 상황 비교 | 대표 원본과 실제 사용 시점 원본 |
-| 5 장점 1·2 | 해당 기능을 실제로 확인할 수 있는 디테일 원본 |
-| 6 장점 3 | 사용 방법이나 구성품을 확인할 수 있는 원본 |
-| 7 차별점 비교 | 우리 제품 쪽에만 대표 원본 사용; 경쟁 상품은 특정 제품으로 재현하지 않음 |
-| 8 추천 대상 | 대표 원본 또는 실제 사용 원본 |
-| 9 활용 장면 | 실제 사용 각도를 확인할 수 있는 원본 |
-| 10 CTA | 3장과 동일한 대표 원본 |
+- `PROBLEM_HOOK`: 제품이 필요하지 않으면 확인된 불편 상황을 중심으로 구성하고, 등장하면 대표 원본을 쓴다.
+- `PRODUCT_INTRO`: 대표 정면 또는 3/4 원본과 현재 판매 구성 원본을 쓴다. 상품 소개 역할은 정확히 한 페이지만 둔다.
+- `FIT_STRUCTURE`·`FEATURE_EVIDENCE`: 해당 구조나 허용 기능을 실제로 확인할 수 있는 디테일 원본을 쓴다.
+- `MEASURED_SIZE`: 현재 제품과 자의 시작·끝점이 함께 보이는 사진, 사용자 실측값 또는 정확한 동일 옵션의 `M1 + E1/E2` 공식 치수만 쓴다. 자 사진 없는 사용자 값은 `USER_DECLARED_SPEC / USER_CONFIRMED_NO_PHOTO`로 표시하고 자 사진·공식 도면처럼 연출하지 않는다. 사진 비율, 유사 제품, 리뷰나 생성형 추정으로 치수를 만들지 않는다.
+- `COMPONENTS`·`OPTIONS`: 현재 판매 구성품 수량 또는 현재 옵션이 한 화면에서 확인되는 원본을 쓴다.
+- `HOW_TO_USE`·`CARE_GUIDE`·`SAFETY_GUIDE`: 실제 사용 각도, 라벨, 설명서 또는 사용자가 확인한 순서를 보여주는 원본을 쓴다.
+- `SITUATION_USE`: 해당 행동에 맞는 실제 사용 원본을 쓴다. 다른 페이지와 같은 장면을 말투만 바꿔 반복하지 않는다.
+- 마지막 정보+CTA: 그 페이지의 새 정보를 증명하는 원본을 우선하고 상품 소개 페이지의 히어로 컷을 그대로 복사하지 않는다.
 
-장별 선택을 달리하더라도 대표 원본과 제품 불변 요소는 모든 호출에 유지한다.
+역할 목록은 고정 장수 청사진이 아니다. 고유 INFO_ID와 근거가 있는 역할만 선택한다. 장별 선택을 달리하더라도 대표 원본과 제품 불변 요소는 모든 호출에 유지한다.
 
 ## image_gen 전달
 
@@ -118,14 +120,14 @@ ORIGINAL_PRODUCT invariants:
 
 ```text
 Input images:
-- Image 1 / ORIGINAL_PRODUCT_PRIMARY: product identity source; preserve exactly
-- Image 2 / ORIGINAL_PRODUCT_DETAIL: verify component and material details only
-- Image 3 / STYLE_REFERENCE: abstract layout and visual rhythm only; never copy its product or text
+- Image 1 / RAW_PRIMARY: product identity source; preserve exactly
+- Image 2 / RAW_DETAIL: verify visible component details only
+- Image 3 / REF_STRUCTURE or REF_MOOD: abstract layout and visual rhythm only; never copy its product or text
 ```
 
-웹에서 찾은 동일 제품 자료를 호출에 포함해야 한다면 `WEB_CONFIRMED_PRODUCT`로 분명히 표시하고 `M1` 또는 `M2` 근거와 직접 URL을 프롬프트 기록에 남긴다. 이는 보조 자료이며 사용자 원본보다 우선하지 않는다. 유사 제품 이미지는 제품 정체성 참조로 전달하지 않는다.
+웹에서 찾은 동일 제품 자료를 호출에 포함해야 한다면 `WEB_MATCH`로 분명히 표시하고 `M1` 또는 `M2` 근거와 직접 URL을 프롬프트 기록에 남긴다. 이는 보조 자료이며 사용자 원본보다 우선하지 않는다. 유사 제품 이미지는 제품 정체성 참조로 전달하지 않는다.
 
-대화에만 있는 이미지는 필요한 모든 입력을 포함하는 최소 `num_last_images_to_include`를 사용한다. 두 입력 방식을 함께 사용하지 않는다.
+대화에만 있는 이미지는 기획 탐색까지만 사용한다. HTML 승인 전 번호 프로젝트의 `original-images/`에 원본 바이트를 보존하고 SHA256을 등록한 뒤 `referenced_image_paths`로만 생성에 전달한다.
 
 각 장에 동일한 원본 세트를 다시 제공한다. 이전에 생성된 상세페이지 이미지를 다음 장의 제품 기준으로 삼지 않는다. 생성본을 연속 기준으로 사용하면 색상, 부품과 비율이 조금씩 변하는 누적 드리프트가 생길 수 있다.
 

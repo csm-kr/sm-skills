@@ -14,13 +14,17 @@ IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".heic", ".avif"}
 REQUIRED_FIELDS = (
     "상품명",
     "카테고리",
+    "가장 중요한 기능적 구매 이유와 근거",
     "타깃 고객",
     "대표 불편",
     "사용 상황",
     "사용 방법",
     "구성품",
+    "판매 구성 수량",
     "소재/재질",
     "색상",
+    "실측값",
+    "실측 사진 상태",
     "주의사항",
     "경쟁 제품 대비 검증된 차별점",
     "강조할 분위기",
@@ -72,6 +76,34 @@ def research_rows(text: str) -> dict[str, list[list[str]]]:
     return rows
 
 
+def valid_research_location(value: str, *, allow_none: bool) -> bool:
+    if allow_none and value == "검색 결과 없음":
+        return True
+    return bool(re.fullmatch(r"https?://\S+", value))
+
+
+def manifest_roles(skill_root: Path, project_no: str) -> dict[str, str]:
+    """Return local asset paths and explicit roles from asset-map.md when present."""
+
+    path = skill_root / "outputs" / project_no / "asset-map.md"
+    if not path.is_file():
+        return {}
+    roles: dict[str, str] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("|"):
+            continue
+        cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+        if (
+            len(cells) >= 4
+            and re.fullmatch(r"A\d{2,}", cells[0], re.IGNORECASE)
+            and cells[3]
+            and not re.match(r"https?://", cells[3])
+        ):
+            roles[cells[3].lstrip("./")] = cells[1]
+    return roles
+
+
 def check(
     skill_root: Path, project_no: str, conversation_original_count: int = 0
 ) -> dict[str, object]:
@@ -84,6 +116,7 @@ def check(
     input_root = skill_root / "inputs" / project_no
     info_path = input_root / "product-info.md"
     original_dir = input_root / "original-images"
+    web_confirmed_dir = input_root / "web-confirmed"
     reference_dir = input_root / "real-references"
     output_root = skill_root / "outputs" / project_no
     research_path = output_root / "web-research.md"
@@ -113,6 +146,11 @@ def check(
         errors.append(f"missing required web research file: {research_path}")
     else:
         research_text = research_path.read_text(encoding="utf-8")
+        research_date = field_value(research_text, "조사일")
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", research_date):
+            errors.append(f"web research needs an ISO 조사일 YYYY-MM-DD: {research_path}")
+        if not field_value(research_text, "동일 제품 결론"):
+            errors.append(f"web research needs a non-empty 동일 제품 결론: {research_path}")
         if field_value(research_text, "조사 상태") != "완료":
             errors.append(
                 f"web research is not complete; set '조사 상태: 완료' after recording exact and similar product searches: {research_path}"
@@ -123,20 +161,38 @@ def check(
             populated = [
                 cells
                 for cells in candidates
-                if len(cells) >= 3 and cells[1] and cells[2]
+                if len(cells) >= 8
+                and cells[1]
+                and valid_research_location(cells[2], allow_none=True)
+                and cells[3] in {"M0", "M1", "M2", "M3"}
+                and cells[4] in {"E1", "E2", "E3", "E4"}
+                and cells[5]
+                and cells[6]
+                and cells[7]
             ]
             if not populated:
                 errors.append(
-                    f"web research needs a populated '{row_type}' row with a query and URL or '검색 결과 없음': {research_path}"
+                    f"web research needs a complete '{row_type}' row with query, direct URL or exact '검색 결과 없음', M/E grades, use boundary, and excluded claims: {research_path}"
                 )
         structure_rows = [
             cells
             for cells in rows.get("상세 구조", [])
-            if len(cells) >= 6 and cells[1] and cells[2] and cells[5]
+            if len(cells) >= 8
+            and cells[1]
+            and valid_research_location(cells[2], allow_none=False)
+            and cells[3] in {"M0", "M1", "M2", "M3"}
+            and cells[4] in {"E1", "E2", "E3", "E4"}
+            and cells[5]
+            and cells[6]
+            and cells[7]
         ]
         if len(structure_rows) < 3:
             errors.append(
                 f"web research needs at least 3 populated '상세 구조' rows before planning: {research_path}"
+            )
+        elif len({cells[2] for cells in structure_rows}) < 3:
+            errors.append(
+                f"web research needs at least 3 distinct direct detail-page URLs: {research_path}"
             )
 
     if not analysis_path.is_file():
@@ -150,13 +206,33 @@ def check(
                 f"detail-page analysis needs a common-pattern section and at least 3 source URLs: {analysis_path}"
             )
 
-    originals = image_files(original_dir)
+    role_by_path = manifest_roles(skill_root, project_no)
+    original_candidates = image_files(original_dir)
+    web_confirmed = image_files(web_confirmed_dir)
+    originals: list[Path] = []
+    legacy_web_confirmed: list[Path] = []
+    for candidate in original_candidates:
+        relative = candidate.relative_to(skill_root).as_posix()
+        role = role_by_path.get(relative, "")
+        if role == "WEB_MATCH":
+            web_confirmed.append(candidate)
+            legacy_web_confirmed.append(candidate)
+        else:
+            originals.append(candidate)
+    web_confirmed = sorted(set(web_confirmed))
     references = image_files(reference_dir)
-    if not originals and conversation_original_count == 0:
-        errors.append(f"add at least one original product image to: {original_dir}")
+    if not originals:
+        errors.append(
+            f"persist at least one original product image before HTML review or generation: {original_dir}"
+        )
     if conversation_original_count:
         warnings.append(
-            f"using {conversation_original_count} conversation-only original image(s); they are not stored in the project folder"
+            f"found {conversation_original_count} conversation-only original image(s), but they are provisional until copied into the numbered project and hashed in asset-map.md"
+        )
+    if legacy_web_confirmed:
+        errors.append(
+            "move WEB_MATCH files out of original-images/ into the numbered web-confirmed/ folder and update asset-map.md path/SHA256 before review or generation: "
+            + ", ".join(path.name for path in legacy_web_confirmed)
         )
     if not references:
         warnings.append(
@@ -170,6 +246,7 @@ def check(
         "web_research": str(research_path),
         "detail_page_analysis": str(analysis_path),
         "original_images": [str(path) for path in originals],
+        "web_confirmed_images": [str(path) for path in web_confirmed],
         "conversation_original_count": conversation_original_count,
         "style_references": [str(path) for path in references],
         "errors": errors,
@@ -188,7 +265,7 @@ def main() -> int:
         type=int,
         default=0,
         metavar="COUNT",
-        help="Count of original product images available only as conversation attachments",
+        help="Diagnostic count of provisional conversation attachments; these do not replace persisted RAW files",
     )
     args = parser.parse_args()
 

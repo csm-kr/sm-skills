@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Normalize page-01..page-10 to 800x2400 using strict Pillow decoding."""
+"""Normalize a contiguous 3..10 page image set using strict Pillow decoding."""
 
 from __future__ import annotations
 
@@ -10,7 +10,15 @@ import sys
 from pathlib import Path
 
 from pillow_runtime import load_pillow
-from validate_pages import TARGET_HEIGHT, TARGET_WIDTH, validate
+from validate_pages import (
+    MAX_PAGE_COUNT,
+    MIN_PAGE_COUNT,
+    PAGE_STEM_PATTERN,
+    TARGET_HEIGHT,
+    TARGET_WIDTH,
+    page_count,
+    validate,
+)
 
 
 TARGET_RATIO = TARGET_WIDTH / TARGET_HEIGHT
@@ -20,21 +28,57 @@ TARGET_RATIO_HEIGHT = TARGET_HEIGHT // TARGET_UNIT_GCD
 SOURCE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".heic", ".avif"}
 
 
-def find_pages(directory: Path) -> list[Path]:
+def find_pages(directory: Path, expected_count: int | None = None) -> list[Path]:
+    """Return one source per contiguous page number, rejecting all image extras."""
+
+    image_files = sorted(
+        path
+        for path in directory.iterdir()
+        if path.is_file() and path.suffix.lower() in SOURCE_EXTENSIONS
+    )
+    numbered: dict[int, list[Path]] = {}
+    for path in image_files:
+        match = PAGE_STEM_PATTERN.fullmatch(path.stem)
+        if match:
+            numbered.setdefault(int(match.group(1)), []).append(path)
+
+    count = expected_count if expected_count is not None else max(numbered, default=0)
+    errors: list[str] = []
+    if not MIN_PAGE_COUNT <= count <= MAX_PAGE_COUNT:
+        errors.append(
+            f"page count must be between {MIN_PAGE_COUNT} and {MAX_PAGE_COUNT}, got {count}"
+        )
+
     pages: list[Path] = []
-    for number in range(1, 11):
-        matches = [
-            path
-            for path in directory.iterdir()
-            if path.is_file()
-            and path.suffix.lower() in SOURCE_EXTENSIONS
-            and path.stem == f"page-{number:02d}"
-        ]
-        if len(matches) != 1:
-            raise ValueError(
-                f"page-{number:02d}: expected exactly one source image, found {len(matches)}"
+    selected: set[Path] = set()
+    for number in range(1, count + 1):
+        matches = numbered.get(number, [])
+        if len(matches) == 0:
+            errors.append(f"page-{number:02d}: missing source image")
+        elif len(matches) > 1:
+            errors.append(
+                f"page-{number:02d}: duplicate page number: "
+                + ", ".join(path.name for path in matches)
             )
-        pages.append(matches[0])
+        else:
+            pages.append(matches[0])
+            selected.add(matches[0])
+
+    extras = [
+        path.name
+        for path in image_files
+        if path not in selected
+        and not (
+            (match := PAGE_STEM_PATTERN.fullmatch(path.stem))
+            and 1 <= int(match.group(1)) <= count
+            and len(numbered.get(int(match.group(1)), [])) > 1
+        )
+    ]
+    if extras:
+        errors.append("unexpected source image files: " + ", ".join(extras))
+
+    if errors:
+        raise ValueError("; ".join(errors))
     return pages
 
 
@@ -135,10 +179,18 @@ def normalize_with_pillow(
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Create exact 800x2400 PNGs from page-01..page-10 source images."
+        description=(
+            "Create exact 800x2400 PNGs from a contiguous page-01..page-NN "
+            f"source set ({MIN_PAGE_COUNT}..{MAX_PAGE_COUNT} pages)."
+        )
     )
     parser.add_argument("source_dir", type=Path)
     parser.add_argument("output_dir", type=Path)
+    parser.add_argument(
+        "--expected-count",
+        type=page_count,
+        help="Require this many contiguous source pages instead of auto-detecting the count",
+    )
     ratio_mode = parser.add_mutually_exclusive_group()
     ratio_mode.add_argument(
         "--allow-center-crop",
@@ -163,7 +215,7 @@ def main() -> int:
         parser.error("source_dir and output_dir must be different")
 
     try:
-        pages = find_pages(args.source_dir)
+        pages = find_pages(args.source_dir, expected_count=args.expected_count)
     except ValueError as exc:
         print(f"FAILED: {exc}", file=sys.stderr)
         return 1
@@ -207,7 +259,7 @@ def main() -> int:
         print(f"FAILED: {exc}", file=sys.stderr)
         return 1
 
-    report = validate(args.output_dir)
+    report = validate(args.output_dir, expected_count=len(pages))
     if not report["ok"]:
         for path in created:
             path.unlink(missing_ok=True)
@@ -217,7 +269,10 @@ def main() -> int:
         return 1
 
     placeholder.unlink(missing_ok=True)
-    print(f"OK: normalized 10 pages with {backend}; every image is 800x2400.")
+    print(
+        f"OK: normalized {len(pages)} pages with {backend}; "
+        f"every image is {TARGET_WIDTH}x{TARGET_HEIGHT}."
+    )
     return 0
 
 
