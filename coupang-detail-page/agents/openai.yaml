@@ -1,0 +1,4 @@
+interface:
+  display_name: "쿠팡 상세페이지 10장 생성"
+  short_description: "상품 원본과 레퍼런스로 상세 이미지 10장 생성"
+  default_prompt: "$coupang-detail-page를 시작해 주세요. 처음이면 한국어 온보딩부터 한 번에 한 질문씩 진행하고, 선택 질문에는 번호 보기를 주세요."

@@ -1,0 +1,2 @@
+# Used automatically in .runtime/ when Pillow or macOS sips is unavailable.
+Pillow>=10.0,<13

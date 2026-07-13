@@ -1,0 +1,20 @@
+__pycache__/
+*.pyc
+.runtime/
+
+# Runtime product images and generated pages
+inputs/*/original-images/*
+!inputs/*/original-images/.gitkeep
+inputs/*/real-references/*
+!inputs/*/real-references/.gitkeep
+outputs/*/raw/*
+!outputs/*/raw/retries/
+!outputs/*/raw/retries/.gitkeep
+outputs/*/final/*
+!outputs/*/final/.gitkeep
+outputs/*/fact-ledger.md
+outputs/*/prompt-set.md
+
+# Runtime product facts can be sensitive; only the blank example is distributable.
+inputs/[0-9][0-9][0-9]/product-info.md
+!inputs/001/product-info.example.md
