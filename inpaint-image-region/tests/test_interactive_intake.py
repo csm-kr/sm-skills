@@ -10,6 +10,7 @@ from types import SimpleNamespace
 SKILL_DIR = Path(__file__).resolve().parents[1]
 SCRIPT_PATH = SKILL_DIR / "scripts" / "interactive_intake.py"
 HTML_PATH = SKILL_DIR / "assets" / "inpaint_selector.html"
+SKILL_PATH = SKILL_DIR / "SKILL.md"
 
 
 def load_script_module():
@@ -98,6 +99,13 @@ class InteractiveIntakeTest(unittest.TestCase):
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
 
             self.assertEqual(Path(manifest["source_path"]), input_dir / "source.png")
+
+    def test_skill_keeps_clear_english_edit_prompt_unchanged(self):
+        instructions = SKILL_PATH.read_text(encoding="utf-8")
+
+        self.assertIn("영어 원문이 이미 짧고 명확하면 그대로 사용한다", instructions)
+        self.assertIn("`change the hat to bald head`", instructions)
+        self.assertNotIn("Replace the flat cap with a natural bald scalp", instructions)
 
     def test_submission_runs_comfyui_and_returns_result_for_same_window(self):
         with tempfile.TemporaryDirectory() as temp_dir:
