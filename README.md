@@ -1,6 +1,6 @@
 # sm-skills
 
-Claude Code 용 스킬 모음.
+Claude Code와 Codex에서 사용할 수 있는 스킬 모음.
 
 ## Skills
 
@@ -8,6 +8,7 @@ Claude Code 용 스킬 모음.
 - **paper-scout** — detection·feature-extraction·generative-detection 관련 논문/자료를 웹에서 찾아 핵심 contribution 을 구조화(contribution card)해 뽑아오는 스킬.
 - **ppt-maker** — 주제·노트·이미지·문서로부터 브랜드 reveal.js HTML 덱을 같이 만들어 `.html`·`.pdf`로 뽑는 스킬. `input/` → `output/NN_주제_날짜/` 구조로 입출력을 정리한다.
 - **ai-readiness-cartography** — 임의 레포를 AI-Ready v2 루브릭(100점 · 7 카테고리)으로 감사해 전문 기술 대시보드 HTML + 점수 JSON + ROI 순 액션 리스트를 뽑는 스킬. `scripts/score.py`가 커버리지·hallucinated path·drift·god file 을 자동 채점한다.
+- **remove-image-background** — 사용자에게 한 번에 하나씩 질문해 ComfyUI 서버와 입출력 폴더를 설정하고, BiRefNet으로 배경을 제거해 `<원본명>-rmbg.png` 투명 PNG로 저장하는 Windows·macOS·Linux 호환 스킬.
 
 각 스킬은 해당 디렉토리의 `SKILL.md` 에 정의돼 있다.
 
@@ -21,4 +22,6 @@ cd /tmp/sm-skills && git sparse-checkout set ppt-maker
 cp -r /tmp/sm-skills/ppt-maker ~/.claude/skills/ppt-maker
 ```
 
-또는 저장소 전체를 받아 원하는 스킬 폴더만 `~/.claude/skills/` 로 복사한다.
+Codex에서는 같은 방식으로 원하는 스킬을 프로젝트의 `.codex/skills/` 또는 사용자 전역 `~/.codex/skills/`에 복사한다.
+
+또는 저장소 전체를 받아 원하는 스킬 폴더만 각 도구의 스킬 디렉토리로 복사한다.
