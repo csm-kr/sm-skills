@@ -1,0 +1,272 @@
+{
+  "SMI:1": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "flux-2-klein-9b.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "UNETLoader (Klein)"
+    }
+  },
+  "SMI:2": {
+    "class_type": "FluxKVCache",
+    "inputs": {
+      "model": [
+        "SMI:1",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Flux KV Cache"
+    }
+  },
+  "SMI:3": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen_3_8b_fp8mixed.safetensors",
+      "type": "flux2",
+      "device": "default"
+    },
+    "_meta": {
+      "title": "CLIPLoader"
+    }
+  },
+  "SMI:4": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "flux2-vae.safetensors"
+    },
+    "_meta": {
+      "title": "VAELoader"
+    }
+  },
+  "SMI:5": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "clip": [
+        "SMI:3",
+        0
+      ],
+      "text": ""
+    },
+    "_meta": {
+      "title": "CLIP Text Encode (Positive)"
+    }
+  },
+  "SMI:6": {
+    "class_type": "ConditioningZeroOut",
+    "inputs": {
+      "conditioning": [
+        "SMI:5",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "ConditioningZeroOut (Negative)"
+    }
+  },
+  "SMI:7": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "111.png",
+      "upload": "image"
+    },
+    "_meta": {
+      "title": "Load Source Image"
+    }
+  },
+  "SMI:8": {
+    "class_type": "SMInpaintSquareCrop",
+    "inputs": {
+      "image": [
+        "SMI:7",
+        0
+      ],
+      "box": "360,667,700,865",
+      "context_expand": 1.5,
+      "target_size": 1024
+    },
+    "_meta": {
+      "title": "SM Inpaint Square Crop (box)"
+    }
+  },
+  "SMI:9": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": [
+        "SMI:8",
+        0
+      ],
+      "vae": [
+        "SMI:4",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "VAEEncode (crop ref latent)"
+    }
+  },
+  "SMI:10": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "sm_inpaint_test_ref.png",
+      "upload": "image"
+    },
+    "_meta": {
+      "title": "Load Reference Image"
+    }
+  },
+  "SMI:11": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": [
+        "SMI:10",
+        0
+      ],
+      "vae": [
+        "SMI:4",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "VAEEncode (external ref latent)"
+    }
+  },
+  "SMI:12": {
+    "class_type": "ReferenceLatent",
+    "inputs": {
+      "conditioning": [
+        "SMI:5",
+        0
+      ],
+      "latent": [
+        "SMI:9",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "ReferenceLatent Positive (crop)"
+    }
+  },
+  "SMI:13": {
+    "class_type": "ReferenceLatent",
+    "inputs": {
+      "conditioning": [
+        "SMI:12",
+        0
+      ],
+      "latent": [
+        "SMI:11",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "ReferenceLatent Positive (external ref)"
+    }
+  },
+  "SMI:14": {
+    "class_type": "ReferenceLatent",
+    "inputs": {
+      "conditioning": [
+        "SMI:6",
+        0
+      ],
+      "latent": [
+        "SMI:9",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "ReferenceLatent Negative (crop)"
+    }
+  },
+  "SMI:15": {
+    "class_type": "EmptyFlux2LatentImage",
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "_meta": {
+      "title": "Empty Flux2 Latent Image"
+    }
+  },
+  "SMI:16": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "SMI:2",
+        0
+      ],
+      "positive": [
+        "SMI:13",
+        0
+      ],
+      "negative": [
+        "SMI:14",
+        0
+      ],
+      "latent_image": [
+        "SMI:15",
+        0
+      ],
+      "seed": 0,
+      "steps": 4,
+      "cfg": 1,
+      "sampler_name": "er_sde",
+      "scheduler": "simple",
+      "denoise": 1
+    },
+    "_meta": {
+      "title": "KSampler (Klein 4-step)"
+    }
+  },
+  "SMI:17": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "SMI:16",
+        0
+      ],
+      "vae": [
+        "SMI:4",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "VAEDecode"
+    }
+  },
+  "SMI:18": {
+    "class_type": "SMInpaintSquareStitch",
+    "inputs": {
+      "stitcher": [
+        "SMI:8",
+        2
+      ],
+      "inpainted_image": [
+        "SMI:17",
+        0
+      ],
+      "blend": "poisson",
+      "color_match": "off"
+    },
+    "_meta": {
+      "title": "SM Inpaint Square Stitch"
+    }
+  },
+  "SMI:19": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "SMI:18",
+        0
+      ],
+      "filename_prefix": "SMNodes/klein_inpaint_sm_box"
+    },
+    "_meta": {
+      "title": "SaveImage"
+    }
+  }
+}

@@ -1,4 +1,4 @@
 interface:
   display_name: "ComfyUI 배경 제거"
-  short_description: "질문형 설정 후 BiRefNet으로 배경 제거 결과 저장"
-  default_prompt: "$remove-image-background 스킬로 한 번에 하나씩 질문하며 ComfyUI와 입출력 폴더를 설정한 뒤 이미지 배경을 제거해 주세요."
+  short_description: "드래그 입력 후 BiRefNet으로 투명 배경 생성"
+  default_prompt: "$remove-image-background 스킬로 필요한 설정을 한 번에 하나씩 질문한 뒤 드래그 입력 화면을 열어 이미지 배경을 제거해 주세요."

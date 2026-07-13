@@ -8,7 +8,8 @@ Claude Code와 Codex에서 사용할 수 있는 스킬 모음.
 - **paper-scout** — detection·feature-extraction·generative-detection 관련 논문/자료를 웹에서 찾아 핵심 contribution 을 구조화(contribution card)해 뽑아오는 스킬.
 - **ppt-maker** — 주제·노트·이미지·문서로부터 브랜드 reveal.js HTML 덱을 같이 만들어 `.html`·`.pdf`로 뽑는 스킬. `input/` → `output/NN_주제_날짜/` 구조로 입출력을 정리한다.
 - **ai-readiness-cartography** — 임의 레포를 AI-Ready v2 루브릭(100점 · 7 카테고리)으로 감사해 전문 기술 대시보드 HTML + 점수 JSON + ROI 순 액션 리스트를 뽑는 스킬. `scripts/score.py`가 커버리지·hallucinated path·drift·god file 을 자동 채점한다.
-- **remove-image-background** — 사용자에게 한 번에 하나씩 질문해 ComfyUI 서버와 입출력 폴더를 설정하고, BiRefNet으로 배경을 제거해 `<원본명>-rmbg.png` 투명 PNG로 저장하는 Windows·macOS·Linux 호환 스킬.
+- **remove-image-background** — 사용자에게 한 번에 하나씩 질문해 ComfyUI 서버와 입출력 폴더를 설정하고, 로컬 드래그 앤 드롭 화면 또는 파일 경로로 받은 이미지를 BiRefNet으로 처리해 `<원본명>-rmbg.png` 투명 PNG로 저장하는 Windows·macOS·Linux 호환 스킬.
+- **inpaint-image-region** — 로컬 화면에서 원본을 드래그하고 변경 박스를 그린 뒤 프롬프트와 선택적 레퍼런스로 ComfyUI Flux 2 Klein 인페인팅을 실행한다. 레퍼런스를 비우면 자동으로 텍스트 전용 모드가 된다.
 - **coupang-detail-page** — Codex의 built-in `image_gen`으로 검증된 상품 정보와 원본 이미지를 바탕으로 쿠팡 상세페이지 이미지 10장을 생성·검수하는 스킬. `inputs/001/`과 `outputs/001/`에서 숫자 프로젝트로 관리하고 최종 PNG를 `780×3000`으로 검증한다.
 
 각 스킬은 해당 디렉토리의 `SKILL.md` 에 정의돼 있다.
