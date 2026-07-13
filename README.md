@@ -16,6 +16,34 @@ Claude Code와 Codex에서 사용할 수 있는 스킬 모음.
 
 ## 설치
 
+### 영역 인페인팅 스킬 설치·업데이트
+
+처음에는 스킬 하나만 sparse clone한 뒤 프로젝트의 Codex 또는 Claude Code 폴더에 설치한다.
+
+```bash
+git clone --depth 1 --filter=blob:none --sparse https://github.com/csm-kr/sm-skills /tmp/sm-skills
+git -C /tmp/sm-skills sparse-checkout set inpaint-image-region
+
+# Codex: <project>/.codex/skills/inpaint-image-region
+python3 /tmp/sm-skills/inpaint-image-region/scripts/install_or_update.py \
+  --source /tmp/sm-skills/inpaint-image-region \
+  --tool codex --project-root /path/to/project
+
+# Claude Code: <project>/.claude/skills/inpaint-image-region
+python3 /tmp/sm-skills/inpaint-image-region/scripts/install_or_update.py \
+  --source /tmp/sm-skills/inpaint-image-region \
+  --tool claude --project-root /path/to/project
+```
+
+설치 후에는 설치된 스크립트를 실행하면 GitHub의 최신 버전으로 업데이트된다.
+
+```bash
+python3 /path/to/project/.codex/skills/inpaint-image-region/scripts/install_or_update.py \
+  --tool codex --project-root /path/to/project
+```
+
+Windows에서는 `python3` 대신 `py -3`을 사용하고 `/tmp/sm-skills`, `/path/to/project`를 Windows 경로로 바꾼다. 스킬을 실행할 때 ComfyUI만 열려 있으면 첫 사용 시 서버 주소와 입출력 폴더를 한 번에 하나씩 설정한다.
+
 ### Codex
 
 `coupang-detail-page`만 설치하려면:

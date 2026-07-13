@@ -5,7 +5,9 @@ from __future__ import annotations
 
 import argparse
 import base64
+import importlib.util
 import json
+import mimetypes
 import sys
 import threading
 import uuid
@@ -17,6 +19,7 @@ from urllib.parse import parse_qs, urlparse
 
 SKILL_DIR = Path(__file__).resolve().parents[1]
 HTML_PATH = SKILL_DIR / "assets" / "inpaint_selector.html"
+RUNNER_PATH = SKILL_DIR / "scripts" / "run_inpainting.py"
 MAX_REQUEST_BYTES = 100 * 1024 * 1024
 
 
@@ -108,6 +111,59 @@ def save_submission(
     return manifest_path.resolve()
 
 
+def load_runner_module():
+    spec = importlib.util.spec_from_file_location("inpaint_skill_runner", RUNNER_PATH)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("인페인팅 실행 스크립트를 불러올 수 없음")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def enhance_manifest(
+    manifest_path: Path | str,
+    enhanced_prompt: str,
+) -> Path:
+    manifest_path = Path(manifest_path).expanduser().resolve()
+    prompt = enhanced_prompt.strip()
+    if not prompt:
+        raise ValueError("agent가 보강한 영어 프롬프트가 필요함")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["original_prompt"] = manifest.get("original_prompt") or manifest["prompt"]
+    manifest["prompt"] = prompt
+    manifest_path.write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return manifest_path
+
+
+def run_manifest(
+    manifest_path: Path | str,
+    project_root: Path | str,
+    runner=None,
+) -> Path:
+    project_root = Path(project_root).expanduser().resolve()
+    manifest_path = Path(manifest_path).expanduser().resolve()
+    runner = runner or load_runner_module()
+    settings = runner.resolve_settings(project_root)
+    results = runner.run_inpainting(
+        manifest_path,
+        settings.output_dir,
+        settings.server,
+    )
+    if not results:
+        raise RuntimeError("ComfyUI 인페인팅 결과가 없음")
+    return Path(results[0]).resolve()
+
+
+def image_data_url(path: Path | str) -> str:
+    path = Path(path)
+    media_type = mimetypes.guess_type(path.name)[0] or "image/png"
+    encoded = base64.b64encode(path.read_bytes()).decode("ascii")
+    return f"data:{media_type};base64,{encoded}"
+
+
 class IntakeHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         pass
@@ -124,15 +180,108 @@ class IntakeHandler(BaseHTTPRequestHandler):
         return query.get("token") == [self.server.token]
 
     def do_GET(self):
-        if urlparse(self.path).path != "/" or not self.token_matches():
+        request_path = urlparse(self.path).path
+        if not self.token_matches():
+            self.send_payload(404, b"not found", "text/plain")
+            return
+        if request_path == "/status":
+            payload = {
+                "state": self.server.state,
+                "original_prompt": self.server.original_prompt,
+                "enhanced_prompt": self.server.enhanced_prompt,
+                "error": self.server.error,
+            }
+            if self.server.result is not None:
+                payload.update(
+                    {
+                        "result_name": self.server.result.name,
+                        "result_data_url": image_data_url(self.server.result),
+                    }
+                )
+            body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+            self.send_payload(200, body, "application/json; charset=utf-8")
+            return
+        if request_path != "/":
             self.send_payload(404, b"not found", "text/plain")
             return
         submit_url = f"/submit?token={self.server.token}"
-        html = self.server.html.replace("__SUBMIT_URL__", submit_url).encode("utf-8")
+        status_url = f"/status?token={self.server.token}"
+        regenerate_url = f"/regenerate?token={self.server.token}"
+        execute_url = f"/execute?token={self.server.token}"
+        close_url = f"/close?token={self.server.token}"
+        html = self.server.html.replace("__SUBMIT_URL__", submit_url)
+        html = html.replace("__STATUS_URL__", status_url)
+        html = html.replace("__REGENERATE_URL__", regenerate_url)
+        html = html.replace("__EXECUTE_URL__", execute_url)
+        html = html.replace("__CLOSE_URL__", close_url).encode("utf-8")
         self.send_payload(200, html, "text/html; charset=utf-8")
 
+    def request_agent_prompt(self, event: str) -> None:
+        enhance_url = (
+            f"http://127.0.0.1:{self.server.server_port}"
+            f"/enhance?token={self.server.token}"
+        )
+        request = {
+            "manifest": str(self.server.manifest),
+            "prompt": self.server.original_prompt,
+            "current_enhanced_prompt": self.server.enhanced_prompt,
+            "mode": self.server.mode,
+            "enhance_url": enhance_url,
+        }
+        self.server.state = "waiting_agent"
+        print(f"[{event}] " + json.dumps(request, ensure_ascii=False), flush=True)
+
     def do_POST(self):
-        if urlparse(self.path).path != "/submit" or not self.token_matches():
+        request_path = urlparse(self.path).path
+        if not self.token_matches():
+            self.send_payload(404, b'{"error":"not found"}', "application/json")
+            return
+        if request_path == "/close":
+            self.send_payload(200, b'{"ok":true}', "application/json")
+            threading.Thread(target=self.server.shutdown, daemon=True).start()
+            return
+        if request_path == "/regenerate":
+            if self.server.manifest is None:
+                self.send_payload(
+                    400,
+                    b'{"error":"submit first"}',
+                    "application/json",
+                )
+                return
+            self.request_agent_prompt("AGENT_REGENERATE")
+            self.send_payload(
+                200,
+                b'{"ok":true,"state":"waiting_agent"}',
+                "application/json",
+            )
+            return
+        if request_path == "/execute":
+            if self.server.manifest is None or not self.server.enhanced_prompt:
+                self.send_payload(
+                    400,
+                    b'{"error":"enhanced prompt required"}',
+                    "application/json",
+                )
+                return
+            try:
+                self.server.state = "running"
+                self.server.result = run_manifest(
+                    self.server.manifest,
+                    self.server.project_root,
+                )
+                self.server.state = "complete"
+                self.send_payload(
+                    200,
+                    b'{"ok":true,"state":"complete"}',
+                    "application/json",
+                )
+            except Exception as error:
+                self.server.state = "error"
+                self.server.error = str(error)
+                body = json.dumps({"error": str(error)}, ensure_ascii=False).encode("utf-8")
+                self.send_payload(400, body, "application/json; charset=utf-8")
+            return
+        if request_path not in {"/submit", "/enhance"}:
             self.send_payload(404, b'{"error":"not found"}', "application/json")
             return
         length = int(self.headers.get("Content-Length", "0"))
@@ -141,15 +290,29 @@ class IntakeHandler(BaseHTTPRequestHandler):
             return
         try:
             payload = json.loads(self.rfile.read(length).decode("utf-8"))
-            self.server.result = save_submission(
-                payload,
-                self.server.project_root,
-                self.server.input_dir,
-            )
-            body = json.dumps({"ok": True}, ensure_ascii=False).encode("utf-8")
+            if request_path == "/submit":
+                self.server.manifest = save_submission(
+                    payload,
+                    self.server.project_root,
+                    self.server.input_dir,
+                )
+                self.server.result = None
+                self.server.error = None
+                self.server.enhanced_prompt = None
+                self.server.original_prompt = str(payload.get("prompt") or "").strip()
+                self.server.mode = "reference" if payload.get("reference") else "text_only"
+                self.request_agent_prompt("AGENT_PROMPT")
+            else:
+                if self.server.manifest is None:
+                    raise RuntimeError("먼저 사용자 입력을 제출해야 함")
+                self.server.enhanced_prompt = str(payload.get("prompt") or "").strip()
+                enhance_manifest(self.server.manifest, self.server.enhanced_prompt)
+                self.server.state = "ready"
+            body = json.dumps({"ok": True, "state": self.server.state}).encode("utf-8")
             self.send_payload(200, body, "application/json; charset=utf-8")
-            threading.Thread(target=self.server.shutdown, daemon=True).start()
         except Exception as error:
+            self.server.state = "error"
+            self.server.error = str(error)
             body = json.dumps({"error": str(error)}, ensure_ascii=False).encode("utf-8")
             self.send_payload(400, body, "application/json; charset=utf-8")
 
@@ -166,6 +329,12 @@ def run_server(
     server.token = uuid.uuid4().hex
     server.html = HTML_PATH.read_text(encoding="utf-8")
     server.result = None
+    server.manifest = None
+    server.enhanced_prompt = None
+    server.original_prompt = None
+    server.mode = None
+    server.error = None
+    server.state = "idle"
     url = f"http://127.0.0.1:{server.server_port}/?token={server.token}"
     print(url, flush=True)
     if open_browser:

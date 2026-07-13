@@ -20,10 +20,16 @@ from urllib.request import Request, urlopen
 DEFAULT_SERVER = "http://127.0.0.1:8188"
 DEFAULT_WORKFLOW = Path(__file__).resolve().parents[1] / "assets" / "klein_inpaint_box.json"
 REQUIRED_NODES = {
+    "CFGGuider",
     "CLIPLoader",
     "EmptyFlux2LatentImage",
-    "FluxKVCache",
+    "Flux2Scheduler",
+    "GetImageSize",
+    "ImageScaleToTotalPixels",
+    "KSamplerSelect",
+    "RandomNoise",
     "ReferenceLatent",
+    "SamplerCustomAdvanced",
     "SMInpaintSquareCrop",
     "SMInpaintSquareStitch",
     "UNETLoader",
@@ -217,16 +223,18 @@ def patch_workflow(
     workflow["SMI:7"]["inputs"]["image"] = source_image
     workflow["SMI:5"]["inputs"]["text"] = prompt
     workflow["SMI:8"]["inputs"]["box"] = box
-    workflow["SMI:16"]["inputs"]["seed"] = seed
-    workflow["SMI:19"]["inputs"]["filename_prefix"] = filename_prefix
+    workflow["SMI:16"]["inputs"]["noise_seed"] = seed
+    workflow["SMI:22"]["inputs"]["filename_prefix"] = filename_prefix
 
     if reference_image is None:
-        for node_id in ("SMI:10", "SMI:11", "SMI:13"):
+        for node_id in ("SMI:30", "SMI:31", "SMI:32", "SMI:33", "SMI:34"):
             workflow.pop(node_id, None)
-        workflow["SMI:16"]["inputs"]["positive"] = ["SMI:12", 0]
+        workflow["SMI:18"]["inputs"]["positive"] = ["SMI:11", 0]
+        workflow["SMI:18"]["inputs"]["negative"] = ["SMI:12", 0]
     else:
-        workflow["SMI:10"]["inputs"]["image"] = reference_image
-        workflow["SMI:16"]["inputs"]["positive"] = ["SMI:13", 0]
+        workflow["SMI:30"]["inputs"]["image"] = reference_image
+        workflow["SMI:18"]["inputs"]["positive"] = ["SMI:33", 0]
+        workflow["SMI:18"]["inputs"]["negative"] = ["SMI:34", 0]
 
 
 def load_manifest(path: Path) -> dict:

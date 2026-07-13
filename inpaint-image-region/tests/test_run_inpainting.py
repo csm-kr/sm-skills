@@ -56,9 +56,15 @@ class FakeComfyHandler(BaseHTTPRequestHandler):
             response = {
                 "SMInpaintSquareCrop": {},
                 "SMInpaintSquareStitch": {},
+                "CFGGuider": {},
                 "EmptyFlux2LatentImage": {},
-                "FluxKVCache": {},
+                "Flux2Scheduler": {},
+                "GetImageSize": {},
+                "ImageScaleToTotalPixels": {},
+                "KSamplerSelect": {},
+                "RandomNoise": {},
                 "ReferenceLatent": {},
+                "SamplerCustomAdvanced": {},
                 "UNETLoader": {
                     "input": {"required": {"unet_name": [["flux-2-klein-9b.safetensors"]]}}
                 },
@@ -108,9 +114,10 @@ class RunInpaintingTest(unittest.TestCase):
     def test_text_only_removes_external_reference_chain(self):
         workflow = {
             f"SMI:{number}": {"inputs": {}}
-            for number in range(1, 20)
+            for number in range(1, 35)
         }
-        workflow["SMI:15"]["inputs"]["positive"] = ["SMI:13", 0]
+        workflow["SMI:18"]["inputs"]["positive"] = ["SMI:33", 0]
+        workflow["SMI:18"]["inputs"]["negative"] = ["SMI:34", 0]
 
         self.module.patch_workflow(
             workflow=workflow,
@@ -122,10 +129,10 @@ class RunInpaintingTest(unittest.TestCase):
             seed=42,
         )
 
-        self.assertNotIn("SMI:10", workflow)
-        self.assertNotIn("SMI:11", workflow)
-        self.assertNotIn("SMI:13", workflow)
-        self.assertEqual(workflow["SMI:16"]["inputs"]["positive"], ["SMI:12", 0])
+        for node_id in ("SMI:30", "SMI:31", "SMI:32", "SMI:33", "SMI:34"):
+            self.assertNotIn(node_id, workflow)
+        self.assertEqual(workflow["SMI:18"]["inputs"]["positive"], ["SMI:11", 0])
+        self.assertEqual(workflow["SMI:18"]["inputs"]["negative"], ["SMI:12", 0])
 
     def test_reference_mode_patches_source_reference_prompt_and_box(self):
         workflow = json.loads(WORKFLOW_PATH.read_text(encoding="utf-8"))
@@ -141,12 +148,18 @@ class RunInpaintingTest(unittest.TestCase):
         )
 
         self.assertEqual(workflow["SMI:7"]["inputs"]["image"], "source.png")
-        self.assertEqual(workflow["SMI:10"]["inputs"]["image"], "reference.png")
+        self.assertEqual(workflow["SMI:30"]["inputs"]["image"], "reference.png")
         self.assertEqual(workflow["SMI:5"]["inputs"]["text"], "use the reference fabric")
         self.assertEqual(workflow["SMI:8"]["inputs"]["box"], "10,20,110,220")
-        self.assertEqual(workflow["SMI:16"]["inputs"]["seed"], 42)
-        self.assertEqual(workflow["SMI:15"]["class_type"], "EmptyFlux2LatentImage")
-        self.assertEqual(workflow["SMI:16"]["inputs"]["positive"], ["SMI:13", 0])
+        self.assertEqual(workflow["SMI:16"]["inputs"]["noise_seed"], 42)
+        self.assertEqual(workflow["SMI:8"]["inputs"]["context_expand"], 1.0)
+        self.assertEqual(workflow["SMI:15"]["class_type"], "Flux2Scheduler")
+        self.assertEqual(workflow["SMI:15"]["inputs"]["steps"], 4)
+        self.assertEqual(workflow["SMI:17"]["inputs"]["sampler_name"], "euler")
+        self.assertEqual(workflow["SMI:19"]["class_type"], "SamplerCustomAdvanced")
+        self.assertEqual(workflow["SMI:21"]["inputs"]["color_match"], "mean_std")
+        self.assertEqual(workflow["SMI:18"]["inputs"]["positive"], ["SMI:33", 0])
+        self.assertEqual(workflow["SMI:18"]["inputs"]["negative"], ["SMI:34", 0])
 
     def test_settings_use_portable_defaults_and_round_trip_project_config(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -247,7 +260,7 @@ class RunInpaintingTest(unittest.TestCase):
                 self.assertEqual(expected.read_bytes(), FakeComfyHandler.png_bytes)
                 self.assertEqual(FakeComfyHandler.upload_count, 2)
                 self.assertEqual(
-                    FakeComfyHandler.received_prompt["SMI:10"]["inputs"]["image"],
+                    FakeComfyHandler.received_prompt["SMI:30"]["inputs"]["image"],
                     "uploaded-reference.png",
                 )
         finally:

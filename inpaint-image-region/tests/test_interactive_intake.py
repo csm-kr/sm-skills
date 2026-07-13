@@ -4,6 +4,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 
 SKILL_DIR = Path(__file__).resolve().parents[1]
@@ -68,6 +69,19 @@ class InteractiveIntakeTest(unittest.TestCase):
             self.assertIn("<canvas", html)
             self.assertIn("레퍼런스", html)
             self.assertIn("dragover", html)
+            self.assertIn('addEventListener("wheel"', html)
+            self.assertIn("바로 인페인팅 실행", html)
+            self.assertIn("Agent가 영어 프롬프트", html)
+            self.assertIn("__STATUS_URL__", html)
+            self.assertIn('id="enhancedPromptInput"', html)
+            self.assertIn('id="regenerate"', html)
+            self.assertIn('id="execute"', html)
+            self.assertIn('id="beforeImage"', html)
+            self.assertIn('id="afterImage"', html)
+            self.assertIn('id="compareSlider"', html)
+            self.assertIn("변경할 내용", html)
+            self.assertIn("원본", html)
+            self.assertIn("결과", html)
 
     def test_uses_configured_input_directory(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -84,6 +98,50 @@ class InteractiveIntakeTest(unittest.TestCase):
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
 
             self.assertEqual(Path(manifest["source_path"]), input_dir / "source.png")
+
+    def test_submission_runs_comfyui_and_returns_result_for_same_window(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            calls = []
+
+            class FakeRunner:
+                @staticmethod
+                def resolve_settings(project_root):
+                    return SimpleNamespace(
+                        server="http://comfy.example:8188",
+                        output_dir=project_root / "inpainting" / "outputs",
+                    )
+
+                @staticmethod
+                def run_inpainting(manifest_path, output_dir, server):
+                    calls.append((manifest_path, output_dir, server))
+                    output_dir.mkdir(parents=True)
+                    result = output_dir / "source-inpaint.png"
+                    result.write_bytes(b"result-image")
+                    return [result]
+
+            payload = {
+                "source": image_payload("source.png", b"source-image"),
+                "reference": None,
+                "prompt": "make it blue",
+                "box": [10, 20, 110, 220],
+            }
+
+            manifest_path = self.module.save_submission(payload, root)
+            self.module.enhance_manifest(
+                manifest_path,
+                "Replace the selected item with a blue version while preserving the subject and background.",
+            )
+            result = self.module.run_manifest(manifest_path, root, runner=FakeRunner)
+
+            self.assertEqual(result.read_bytes(), b"result-image")
+            self.assertEqual(calls[0][2], "http://comfy.example:8188")
+            self.assertEqual(calls[0][0], root / "inpainting" / "session.json")
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            self.assertEqual(manifest["original_prompt"], "make it blue")
+            self.assertTrue(manifest["prompt"].startswith("Replace the selected item"))
+            data_url = self.module.image_data_url(result)
+            self.assertTrue(data_url.startswith("data:image/png;base64,"))
 
 
 if __name__ == "__main__":
