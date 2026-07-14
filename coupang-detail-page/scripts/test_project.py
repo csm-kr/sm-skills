@@ -535,6 +535,7 @@ class ProjectWorkflowTest(unittest.TestCase):
                 "plan-gate.md",
                 "generation-gate.md",
                 "prompt-set.md",
+                "execution-log.md",
                 "qa-report.md",
                 "motion-plan.md",
                 "font-plan.md",
@@ -560,6 +561,17 @@ class ProjectWorkflowTest(unittest.TestCase):
                 "## DESIGN_SYSTEM",
             ):
                 self.assertIn(heading, prompt_set)
+            execution_log = (output_root / "execution-log.md").read_text(
+                encoding="utf-8"
+            )
+            for execution_contract in (
+                "승인 뒤의 가변 실행 기록",
+                "장별 호출 기록",
+                "정규화·최종 파일",
+                "prompt-set.md",
+                "SHA256",
+            ):
+                self.assertIn(execution_contract, execution_log)
             generation_gate = (output_root / "generation-gate.md").read_text(
                 encoding="utf-8"
             )
@@ -1692,6 +1704,22 @@ class ProjectWorkflowTest(unittest.TestCase):
             )
             ready = validate_generation_gate(root, "001", "static")
             self.assertTrue(ready["ok"], ready["errors"])
+
+            (output_root / "execution-log.md").write_text(
+                "실제 시도 1 · SELECTED · final SHA256 abc123",
+                encoding="utf-8",
+            )
+            (output_root / "qa-report.md").write_text(
+                "실행 뒤 QA PASS",
+                encoding="utf-8",
+            )
+            runtime_logs_do_not_invalidate_approval = validate_generation_gate(
+                root, "001", "static"
+            )
+            self.assertTrue(
+                runtime_logs_do_not_invalidate_approval["ok"],
+                runtime_logs_do_not_invalidate_approval["errors"],
+            )
 
             base_gate = approved_gate_for(review_path)
             contradictory_approval = base_gate.replace(

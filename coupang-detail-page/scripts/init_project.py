@@ -57,6 +57,7 @@ PRODUCT_INFO_TEMPLATE = """# 상품 정보
 강조할 분위기:
 객관적인 수치/인증/시험 정보: 없음
 사용하면 안 되는 표현:
+정적 비교 장면 기본값: 실제 비교 사진이 없으면 승인 뒤 `AI_ILLUSTRATION`으로 생성 · 실제 시험/수치/객관적 우위 근거로 사용 금지
 
 ## 실증 영상 입력
 
@@ -318,12 +319,38 @@ PROMPT_SET_TEMPLATE = """# image_gen 프롬프트 세트
 - REF_*의 문구·제품·수치·로고·고유 그래픽을 복제하지 않는다.
 - 장별 SHOT_ID·SCENE_ID·LAYOUT_ID를 다르게 하고 같은 구매 답을 다시 말하지 않는다.
 
-## 선정 장수 프롬프트와 실행 기록
+## 선정 장수 프롬프트 계약 — 승인 스냅샷
 
-선정한 장마다 한 행을 만들고 `raw 출력`은 `outputs/{project_no}/raw/page-NN.png`로 기록한다.
+선정한 장마다 한 행을 만들고 `raw 출력 계약`은 `outputs/{project_no}/raw/page-NN.png`로 기록한다. 이 문서는 `plan-review.html`에 포함되는 승인 소스이므로 승인 뒤 시도 횟수·상태를 덮어쓰지 않는다. 실제 실행 기록은 `execution-log.md`에 남긴다.
 
-| 장 | ROLE_ID | INFO_ID | 역할·정보 구역 | 카피 매니페스트 | RAW_ASSET_IDS | 최종 프롬프트 | 시도 | raw 출력 | 상태 |
-|---:|---|---|---|---|---|---|---:|---|---|
+| 장 | ROLE_ID | INFO_ID | 역할·정보 구역 | 카피 매니페스트 | RAW_ASSET_IDS | 최종 프롬프트 | raw 출력 계약 |
+|---:|---|---|---|---|---|---|---|
+"""
+
+EXECUTION_LOG_TEMPLATE = """# 생성 실행 로그
+
+프로젝트 번호: {project_no}
+실행 상태: 미실행
+승인한 기획 소스 해시:
+승인한 리뷰 HTML 해시:
+
+이 문서는 승인 뒤의 가변 실행 기록이다. `plan-review.html`의 승인 소스가 아니며 `prompt-set.md`를 실행 로그로 덮어쓰지 않는다.
+
+## 장별 호출 기록
+
+| 장 | 시도 | 도구·모드 | 참조 자산·입력 | 생성 원본 | TEXT | PRODUCT | LAYOUT | CLAIMS | 판정 | 실패·교체 사유 |
+|---:|---:|---|---|---|---|---|---|---|---|---|
+
+## 정규화·최종 파일
+
+| 장 | 선택 raw | 정규화 방식 | 최종 파일 | 규격 | SHA256 | 판정 |
+|---:|---|---|---|---|---|---|
+
+## 실행 경계
+
+- 승인한 기획 소스는 생성 전후 같은 SHA256을 유지한다.
+- 재시도 전 결과는 `raw/retries/`에 보존한다.
+- GIF·영상은 승인 범위에 포함될 때만 별도 실행 기록을 추가한다.
 """
 
 DETAIL_PAGE_ANALYSIS_TEMPLATE = """# 상세페이지 비교 분석
@@ -567,6 +594,7 @@ OUTPUT_TEMPLATES = {
     "plan-gate.md": PLAN_GATE_TEMPLATE,
     "generation-gate.md": GENERATION_GATE_TEMPLATE,
     "prompt-set.md": PROMPT_SET_TEMPLATE,
+    "execution-log.md": EXECUTION_LOG_TEMPLATE,
     "qa-report.md": QA_REPORT_TEMPLATE,
     "motion-plan.md": MOTION_PLAN_TEMPLATE,
     "font-plan.md": FONT_PLAN_TEMPLATE,

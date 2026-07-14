@@ -11,6 +11,8 @@
 
 `plan-review.html`은 아래 문서가 바뀔 때마다 다시 만든다.
 
+승인 뒤 위 기획 소스는 스냅샷으로 잠근다. 실제 image_gen 호출 횟수, 재시도, 실패 사유, raw 선택본과 최종 SHA256은 `execution-log.md`와 `qa-report.md`에 기록하며 `prompt-set.md`의 상태·시도 칸을 갱신하지 않는다. 기획 카피·프롬프트·근거 자체가 바뀐 경우에만 승인 무효화 후 HTML을 다시 만든다.
+
 ```bash
 python3 scripts/build_plan_review.py <project-no>
 ```

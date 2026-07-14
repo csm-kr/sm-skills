@@ -111,6 +111,7 @@ coupang-detail-page/
         ├── plan-review.html
         ├── generation-gate.md
         ├── prompt-set.md
+        ├── execution-log.md
         ├── qa-report.md
         ├── font-plan.md
         ├── motion-plan.md
@@ -130,6 +131,14 @@ coupang-detail-page/
 3. 모든 로컬 이미지를 `view_image`로 확인한다.
 4. 사용자 원본은 `RAW_PRIMARY/RAW_DETAIL`, 실측·실사 시험은 `RAW_MEASUREMENT/RAW_DEMO`, 웹 동일·유력 이미지는 `WEB_MATCH`, 스타일 자료는 `REF_*`로 분리한다.
 5. 모든 자산의 실제 SHA256, 출처, M/E 등급, 관찰 사실, 허용·금지 용도를 `asset-map.md` Asset Registry에 기록한다. AI 생성본과 유사 상품은 RAW가 아니다.
+
+#### 정적 비교 장면 기본값
+
+- 사용자가 정성적 불편과 현재 상품의 기능·구조를 확인했지만 실제 비교 사진이 없으면, 비교 사진 업로드를 기본으로 요구하지 않는다. 승인된 정적 페이지 생성 단계에서 `image_gen`으로 일반적인 문제 상황과 현재 상품 사용 장면을 `AI_ILLUSTRATION`으로 만든다.
+- 생성 비교컷은 이해용 연출이지 실제 비교 시험·상품 증거가 아니다. `asset-map.md`의 `PROOF_MODE`를 `AI_ILLUSTRATION`으로 두고 `실제 비교 시험·압박 수치·효과 보장 근거가 아님`을 `CLAIM_BOUNDARY`에 기록한다.
+- 경쟁사·브랜드·고유 제품을 재현하지 않고 무브랜드 일반형만 사용한다. 상처·신체 변화·측정 장비·결과 배지·수치·`입증`, `테스트`, `더 우수` 같은 실증 표현을 넣지 않는다.
+- 현재 상품은 매 호출마다 승인된 `RAW_PRIMARY`·`RAW_DETAIL`을 다시 전달해 외형을 보존한다. 생성한 일반형 비교 제품이나 이전 출력은 RAW로 승격하지 않는다.
+- 실제 비교 사진은 사용자가 실증 비교를 명시적으로 원하거나 물성·성능 주장이 실제 시험을 필요로 할 때만 요청한다. AI 비교 장면도 기획 HTML 승인과 정적 생성 게이트 통과 뒤에만 만든다.
 
 ### 2. 동일 제품과 여러 유사 상세페이지를 반드시 웹 조사한다
 
@@ -275,6 +284,7 @@ DESIGN_SYSTEM
 5. 다음 응답부터 한 질문씩 정확한 `motion-NN` ID, 지원 형식에 맞는 `STATIC_PLUS_GIF / STATIC_PLUS_VIDEO / STATIC_PLUS_GIF_VIDEO / STATIC_PLUS_MOTION_HANDOFF / STATIC_ONLY`, CAPTURE_MODE에 맞는 실행 환경을 차례로 선택받는다.
 6. `CONNECTED`·`WORKFLOW_PROVIDED`는 `scripts/comfyui_receipt.py`가 실제 `/system_stats` probe 또는 구조가 유효한 프로젝트 내부 ComfyUI 워크플로 검증으로 만든 receipt JSON 없이는 기록하지 않는다. helper schema·tool marker·무결성 ID 계약에 맞지 않는 수기·generic JSON은 무효다. `CONNECTED`는 24시간 이내 receipt와 게이트 시점 live 재확인을 모두 요구한다. REAL_TEST·REAL_DEMO 실사 촬영은 `NOT_REQUIRED` 또는 live `CONNECTED`, AI_ILLUSTRATION 실제 생성은 live `CONNECTED`만 허용한다. `WORKFLOW_PROVIDED`는 `STATIC_PLUS_MOTION_HANDOFF`에만 쓴다. `receipt_id`는 외부 서명이 아니므로 실제 실행 상태는 live probe와 endpoint 정체성으로 판정한다.
 7. 환경 선택은 `YYYY-MM-DD · SELECT_ENV · SCOPE=<범위> · MOTION=<정렬된 ID 또는 NONE> · COMFY=<상태>`, 최종 실행 승인은 `YYYY-MM-DD · APPROVE_EXECUTION · SCOPE=<범위> · MOTION=<정렬된 ID 또는 NONE> · COMFY=<상태>` 형식으로 정확히 기록한다. 날짜는 Asia/Seoul 오늘보다 미래일 수 없고 `기획 승인 ≤ 환경 선택 ≤ 최종 승인` 순서여야 한다. 정적 이미지 생성 승인과 GIF·영상 생성 또는 핸드오프 준비 승인을 서로 다른 질문으로 받고, 마지막 질문에서 선택 ID·형식·환경을 요약한다. 자유문·거절문·서로 모순된 기록은 승인으로 인정하지 않으며 세 승인은 서로 대신할 수 없다. `generation-gate.md`의 표준 필드는 각각 정확히 한 번만 존재해야 하고, `기획 리뷰 HTML`은 정확히 `plan-review.html`, `선정 모션 ID`는 `해당 없음` 또는 중복 없는 `motion-NN` 쉼표 목록이어야 한다.
+8. 승인 뒤 `product-info.md`, 조사·분석, `plan-gate.md`, `fact-ledger.md`, `asset-map.md`, `prompt-set.md`, `font-plan.md`, `motion-plan.md`, `video-plan.md`는 승인 스냅샷으로 잠근다. 실제 시도 횟수·생성 파일·실패 사유·최종 해시는 `execution-log.md`와 `qa-report.md`에만 기록한다. 승인 소스에 실행 상태를 덮어써 해시를 깨지 않는다.
 
 기획 승인 전에 ComfyUI 질문이나 마지막 생성 질문을 묻지 않는다. 승인 후 상품 정보·카피·장면·근거·자산 계보·프롬프트·폰트·TOP3를 바꾸면 소스 해시가 달라진다. `기획 검토 상태`, 두 승인 해시와 모든 생성 승인을 무효화하고 HTML부터 다시 만든다.
 
@@ -293,7 +303,8 @@ python3 scripts/validate_generation_gate.py <project-no> --target static
 - 이전 생성본을 다음 장의 제품 기준으로 사용하지 않는다.
 - 승인·생성에 쓰는 모든 원본은 번호 프로젝트에 저장하고 SHA256 계보를 만든 뒤 `referenced_image_paths`로 전달한다. 대화 전용 이미지를 `num_last_images_to_include`로 바로 생성에 쓰지 않는다.
 - 결과를 `outputs/<project-no>/raw/page-NN.png`로 복사한다. 교체 전 결과는 `raw/retries/page-NN-attempt-K.png`로 보존한다.
-- 장 번호, 최종 프롬프트, 참조 경로, 허용 사실, 출력 경로와 시도 번호를 `prompt-set.md`에 기록한다.
+- `prompt-set.md`의 장 번호·최종 프롬프트·참조 경로·허용 사실·출력 경로 계약은 승인 뒤 수정하지 않는다.
+- 실제 호출마다 장 번호, 시도 번호, 사용 도구, 참조 경로, 생성 원본 경로, 실패 사유와 판정을 `execution-log.md`에 추가한다. 최종 장별 PASS/FAIL은 `qa-report.md`에 기록한다.
 
 프롬프트의 고정 순서는 다음과 같다.
 
@@ -316,7 +327,7 @@ COPY_SYSTEM / TYPOGRAPHY_SYSTEM / DESIGN_SYSTEM: <공통 블록>
 
 ### 8. 장별 의미·역할·비중복 QA 후 실패한 장만 재생성한다
 
-매 호출 직후 `view_image`로 확인하고 `qa-report.md`에 장별 판정을 기록한다.
+매 호출 직후 `view_image`로 확인하고 `execution-log.md`에 시도 이력, `qa-report.md`에 장별 최종 판정을 기록한다.
 
 - `TEXT`: 카피 매니페스트의 모든 문구와 글자 단위 일치, 자모·오탈자·누락·중복·더미 문구 없음, 자연스러운 줄바꿈, 같은 서체 인상·크기 체계, 모든 정보 문구가 800px 원본에서 최소 32px, 충분한 대비와 여백.
 - `PRODUCT`: 실루엣·비율·색상·부품 수·라벨 위치·구성품 수 일치, 임의 추가·삭제·복제·합성 없음.
@@ -346,7 +357,8 @@ built-in `image_gen`의 출력 픽셀은 고정되지 않으므로 프롬프트 
 
 - `web-research.md`에 동일·유사 제품 검색어, URL, M/E 등급, 사용 범위가 있다.
 - `detail-page-analysis.md`에 접근 가능한 여러 상세페이지의 훅·본문·카드·캡션·비교·CTA 패턴과 채택·회피 항목이 분석되어 있다.
-- `prompt-set.md`에 승인된 전체 장의 카피와 공통 카피·타이포·디자인 시스템, 실제 시도 기록이 있다.
+- `prompt-set.md`에 승인된 전체 장의 카피와 공통 카피·타이포·디자인 시스템이 승인 스냅샷으로 유지된다.
+- `execution-log.md`에 실제 장별 호출·재시도·실패 사유·선택 원본·최종 SHA256이 있고, 승인 소스 해시는 생성 전후 동일하다.
 - `plan-gate.md`가 기능 우선·장수 결정 게이트와 각 장의 INFO_ID·고유 질문·PRIMARY_FACT·SHOT_ID·SCENE_ID·LAYOUT_ID를 포함하고 `validate_plan.py`를 통과한다.
 - `asset-map.md`가 실제 SHA256, Fact→Proof, 추상 레퍼런스 원리와 모든 페이지 계보를 포함하고 `validate_asset_map.py`를 통과한다.
 - `plan-review.html`이 핵심 기능·근거·해결 불편·디자인 보조 소구와 최신 기획의 장별 주제·카피·화면·RAW·Proof·레퍼런스 원리·모션 후보를 보여준다.
@@ -360,4 +372,4 @@ built-in `image_gen`의 출력 픽셀은 고정되지 않으므로 프롬프트 
 - `python3 scripts/validate_motion.py <project-no>`가 통과하고, `video-plan.md`에 TOP3 스토리보드, 실사 증거 조건 또는 AI 연출 표시, 고정 텍스트 레이어, 제작 제약·QA와 실행 상태가 있다.
 - 입력에 없는 가격·리뷰·인증·수치·효능, 쿠팡 로고·앱 UI·페이지 번호가 없다.
 
-마지막 응답에는 프로젝트 번호, 정보 단위 수와 선정 장수, 기획 검토 HTML과 승인 기록, 최종 이미지 경로, 리서치·프롬프트·QA·폰트·모션·영상 문서 경로, 재생성한 장, 파일 검증 결과, `가장 영상이 필요한 소구점`과 `CAPTURE_MODE`, 실사·AI 여부, ComfyUI 연결·실행 여부를 간결하게 보고한다.
+마지막 응답에는 프로젝트 번호, 정보 단위 수와 선정 장수, 기획 검토 HTML과 승인 기록, 최종 이미지 경로, 리서치·프롬프트·실행 로그·QA·폰트·모션·영상 문서 경로, 재생성한 장, 파일 검증 결과, `가장 영상이 필요한 소구점`과 `CAPTURE_MODE`, 실사·AI 여부, ComfyUI 연결·실행 여부를 간결하게 보고한다.
