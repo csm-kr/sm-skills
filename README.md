@@ -11,6 +11,7 @@ Claude Code와 Codex에서 사용할 수 있는 스킬 모음.
 - **remove-image-background** — 사용자에게 한 번에 하나씩 질문해 ComfyUI 서버와 입출력 폴더를 설정하고, 로컬 드래그 앤 드롭 화면 또는 파일 경로로 받은 이미지를 BiRefNet으로 처리해 `<원본명>-rmbg.png` 투명 PNG로 저장하는 Windows·macOS·Linux 호환 스킬.
 - **inpaint-image-region** — 로컬 화면에서 원본을 드래그하고 변경 박스를 그린 뒤 프롬프트와 선택적 레퍼런스로 ComfyUI Flux 2 Klein 인페인팅을 실행한다. 레퍼런스를 비우면 자동으로 텍스트 전용 모드가 된다.
 - **coupang-detail-page** — RAW·WEB_MATCH·실제 레퍼런스를 분리하고 `RAW→REFERENCE→REASON→PROOF→PAGE` 계보로 쿠팡 상세페이지를 기획·생성하는 한국어 스킬. 공개 인기 사례 001–010과 매 프로젝트의 실제 상품 조사를 이용하되 타사 기능은 전이하지 않는다. 기능·실측·구성·사용법을 디자인보다 먼저 두고, 독점 구매 질문 수만큼 3~10장(보통 5~8장)을 선택해 반복을 제거한다. `plan-review.html` 승인과 해시 게이트 뒤에만 `800×2400` PNG 및 선택한 GIF·영상을 실행한다.
+- **coupang-product-sourcing** — Browser Use로 도매 후보와 쿠팡 실제 경쟁상품을 교차 조사하고, 하드 필터·수요·마진·경쟁기회·운영위험을 근거 URL과 함께 계산해 `SHORTLIST`·`WATCH`·`REJECT` 후보표와 상세페이지 제작용 핸드오프를 생성한다.
 - **find-youtube-influencers** — 상품과 수치 조건에 맞는 유튜버를 공개 웹 검색과 Browser Use로 직접 검증하고 PASS·근접·탈락·검증 불가로 분류한 뒤, 채널·최근 영상 근거 링크가 포함된 자체 포함형 HTML 보고서를 생성한다.
 
 각 스킬은 해당 디렉토리의 `SKILL.md` 에 정의돼 있다.
