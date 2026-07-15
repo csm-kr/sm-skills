@@ -1,0 +1,4 @@
+interface:
+  display_name: "조건 기반 유튜버 찾기"
+  short_description: "광고 유튜버를 조건별로 검증하고 HTML 보고서로 정리합니다."
+  default_prompt: "$find-youtube-influencers를 사용해 판매 상품과 구독자 수, 최근 영상, 댓글, 조회수, 광고 경험 조건에 맞는 유튜버를 찾아 검증하고 HTML 보고서로 정리해 주세요."
