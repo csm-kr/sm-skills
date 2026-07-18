@@ -1,5 +1,47 @@
 # 조사 기록 및 출력 스키마
 
+## UI 진행 상태 JSON
+
+프롬프트에 `UI_RUN_ID`와 UI 출력 경로가 있으면 조사 세션의 실제 상태를 `UI_STATUS_PATH`에 다음 형식으로 기록한다.
+
+```json
+{
+  "run_id": "youtube-browser-use-YYYY-MM-DDTHH-MM-SS-Z",
+  "phase": "verification",
+  "message": "후보 30개 중 8개 채널의 최근 일반 영상 검증을 완료했습니다.",
+  "updated_at": "YYYY-MM-DDTHH:MM:SS+09:00",
+  "candidate_count": 30,
+  "verified_count": 8,
+  "logs": [
+    "[criteria] 일반 영상 3개 · 평균 댓글 50개 · 평균 조회수 1만 조건 확정",
+    "[discovery] 공개 검색으로 중복 제거 후보 30개 수집",
+    "[verification] 채널 8개 직접 검증 완료"
+  ],
+  "report_url": null
+}
+```
+
+`phase`는 다음 값만 사용한다.
+
+- `criteria`: 조건과 필수 게이트 확정
+- `discovery`: 공개 검색과 후보 수집 진행
+- `verification`: 실제 YouTube 채널·영상 검증 진행
+- `scoring`: `score_candidates.py` 계산·판정 진행
+- `reporting`: HTML 생성·검수 진행
+- `complete`: UI용 JSON과 HTML까지 생성·확인 완료
+- `error`: 실제로 더 진행할 수 없는 오류 또는 사용자 조치 필요
+
+다음 규칙을 지킨다.
+
+- `run_id`는 프롬프트의 `UI_RUN_ID`와 정확히 일치시킨다.
+- `updated_at`은 상태 파일을 실제 갱신한 시각으로 기록한다.
+- `candidate_count`와 `verified_count`는 확인된 실제 개수만 넣는다. 아직 모르면 생략한다.
+- `logs`는 최대 50개를 유지하고, 실제 완료 순서대로 짧게 적는다. 추정 진행률이나 가짜 CLI 출력을 만들지 않는다.
+- 상태 파일은 유효한 JSON 한 개로 완전히 교체하여 UI가 부분 JSON을 읽지 않게 한다.
+- `complete`를 기록하기 전에 `UI_SCORED_PATH`에 최종 계산 JSON, `UI_REPORT_PATH`에 최종 HTML을 복사하고 두 파일을 확인한다.
+- `complete`의 `report_url`은 `/research-runs/<UI_RUN_ID>/influencer-report.html`로 기록한다.
+- 실패 시 이미 확인한 결과를 삭제하지 말고 `phase: "error"`와 실제 원인을 기록한다.
+
 ## 입력 JSON
 
 `scripts/score_candidates.py`에 다음 최상위 구조를 전달한다.
