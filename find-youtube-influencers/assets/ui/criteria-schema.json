@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "confirmation_message": { "type": "string", "minLength": 20, "maxLength": 1200 },
+    "assumptions": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1, "maxLength": 300 },
+      "maxItems": 8
+    },
+    "criteria": {
+      "type": "object",
+      "properties": {
+        "product": { "type": ["string", "null"] },
+        "category": { "type": ["string", "null"] },
+        "market": { "type": "string" },
+        "language": { "type": "string" },
+        "target_audience": { "type": ["string", "null"] },
+        "subscriber_min": { "type": ["number", "null"], "minimum": 0 },
+        "subscriber_max": { "type": ["number", "null"], "minimum": 0 },
+        "recent_video_count": { "type": "integer", "minimum": 1, "maximum": 20 },
+        "recent_content_type": { "type": "string", "enum": ["longform", "shorts"] },
+        "content_cohorts": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["longform", "shorts"] },
+          "minItems": 1,
+          "maxItems": 2
+        },
+        "comment_rule": { "type": "string", "enum": ["total", "average"] },
+        "minimum_comment_total": { "type": ["number", "null"], "minimum": 0 },
+        "minimum_average_comments": { "type": ["number", "null"], "minimum": 0 },
+        "minimum_average_views": { "type": ["number", "null"], "minimum": 0 },
+        "upload_recency_days": { "type": "integer", "minimum": 1, "maximum": 3650 },
+        "sponsored_content_required": { "type": "boolean" },
+        "preferred_content": { "type": "array", "items": { "type": "string" }, "maxItems": 20 },
+        "excluded_content": { "type": "array", "items": { "type": "string" }, "maxItems": 20 },
+        "result_count": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "requested_result_count": { "type": "integer", "minimum": 1, "maximum": 100 },
+        "bot_limit_applied": { "type": "boolean" },
+        "strictness": { "type": "string", "enum": ["strict", "flexible"] },
+        "evaluation_date": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+        "near_match_tolerance": { "type": "number", "minimum": 0, "maximum": 1 },
+        "require_complete_evidence": { "type": "boolean" }
+      },
+      "required": [
+        "product", "category", "market", "language", "target_audience",
+        "subscriber_min", "subscriber_max", "recent_video_count", "recent_content_type",
+        "content_cohorts", "comment_rule", "minimum_comment_total",
+        "minimum_average_comments", "minimum_average_views", "upload_recency_days",
+        "sponsored_content_required", "preferred_content", "excluded_content",
+        "result_count", "requested_result_count", "bot_limit_applied", "strictness",
+        "evaluation_date", "near_match_tolerance", "require_complete_evidence"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": ["confirmation_message", "assumptions", "criteria"],
+  "additionalProperties": false
+}

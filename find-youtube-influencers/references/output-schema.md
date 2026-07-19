@@ -66,7 +66,7 @@
     "sponsored_content_required": false,
     "preferred_content": [],
     "excluded_content": [],
-    "result_count": 10,
+    "result_count": 5,
     "strictness": "strict",
     "evaluation_date": "YYYY-MM-DD",
     "near_match_tolerance": 0.2,

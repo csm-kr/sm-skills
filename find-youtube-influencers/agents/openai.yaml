@@ -1,4 +1,4 @@
 interface:
-  display_name: "조건 기반 유튜버 찾기"
-  short_description: "광고 유튜버를 조건별로 검증하고 HTML 보고서로 정리합니다."
-  default_prompt: "$find-youtube:find-youtube-influencers를 사용해 판매 상품과 구독자 수, 최근 영상, 댓글, 조회수, 광고 경험 조건에 맞는 유튜버를 찾아 검증하고 HTML 보고서로 정리해 주세요."
+  display_name: "유튜브 인플루언서 파인더"
+  short_description: "로컬 UI와 Browser Use로 협찬 유튜버를 검증합니다."
+  default_prompt: "$find-youtube:find-youtube-influencers를 사용해 로컬 조사 UI를 열고 조건에 맞는 협찬 유튜버 5명을 검증해 주세요."

@@ -1,0 +1,77 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["completed", "partial", "failed"]
+    },
+    "checked_at": { "type": "string" },
+    "summary": { "type": "string" },
+    "report_path": { "type": ["string", "null"] },
+    "candidates": {
+      "type": "array",
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "url": { "type": ["string", "null"] },
+          "status": {
+            "type": "string",
+            "enum": ["PASS", "NEAR", "FAIL", "UNVERIFIED"]
+          },
+          "rank": { "type": ["integer", "null"] },
+          "subscribers": { "type": ["integer", "null"] },
+          "subscribers_display": { "type": ["string", "null"] },
+          "comment_total": { "type": ["integer", "null"] },
+          "average_comments": { "type": ["number", "null"] },
+          "average_views": { "type": ["number", "null"] },
+          "engagement_by_views": { "type": ["number", "null"] },
+          "latest_upload": { "type": ["string", "null"] },
+          "advertising_experience": { "type": ["string", "null"] },
+          "evidence_completeness": { "type": "string" },
+          "score": { "type": ["number", "null"] },
+          "score_label": { "type": ["string", "null"] },
+          "checked_at": { "type": "string" },
+          "fit_summary": { "type": "string" },
+          "recommendation_reason": { "type": "string" },
+          "audience_summary": { "type": "string" },
+          "product_style": { "type": "string" },
+          "content_idea": { "type": "string" },
+          "advertising_detail": { "type": "string" },
+          "cautions": { "type": "string" },
+          "reason": { "type": ["string", "null"] },
+          "videos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": { "type": "string" },
+                "published_at": { "type": ["string", "null"] },
+                "views": { "type": ["integer", "null"] },
+                "comments": { "type": ["integer", "null"] },
+                "url": { "type": ["string", "null"] },
+                "ad_label": { "type": "string" }
+              },
+              "required": ["title", "published_at", "views", "comments", "url", "ad_label"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id", "name", "url", "status", "rank", "subscribers", "subscribers_display",
+          "comment_total", "average_comments", "average_views", "engagement_by_views",
+          "latest_upload", "advertising_experience", "evidence_completeness", "score",
+          "score_label", "checked_at", "fit_summary", "recommendation_reason",
+          "audience_summary", "product_style", "content_idea", "advertising_detail",
+          "cautions", "reason", "videos"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["status", "checked_at", "summary", "report_path", "candidates"],
+  "additionalProperties": false
+}
